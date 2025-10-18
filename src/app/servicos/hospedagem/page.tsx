@@ -2,15 +2,15 @@
 import Header from '@/app/components/Header'; 
 import Footer from '@/app/components/Footer';
 
-// Ícones específicos para Hospedagem
+// Ícones específicos para Hospedagem (NÃO USADOS REMOVIDOS)
 import { 
-  Server, CloudLightning, // Ícone principal
-  TrendingUp, Smile, ShoppingCart, // Ícones Pq Hosting Importa
-  Gauge, Lock, DatabaseBackup, Globe as GlobeIcon, LifeBuoy, HardDrive, // Ícones Features
-  Wind, Network, // Ícones Performance
-  ShieldCheck, ScanEye, FileLock, // Ícones Segurança
-  Truck, Headset, // Ícones Migração/Suporte
-  CheckCircle // Ícone CTA
+  CloudLightning, // Ícone principal
+  TrendingUp, Smile, ShoppingCart, 
+  Gauge, Lock, DatabaseBackup, Globe as GlobeIcon, LifeBuoy, HardDrive, 
+  Wind, 
+  ShieldCheck, ScanEye, FileLock, 
+  Headset, 
+  // Server, Network, Truck, CheckCircle REMOVIDOS
 } from 'lucide-react'; 
 
 export default function HospedagemPage() {
@@ -18,10 +18,9 @@ export default function HospedagemPage() {
     <main>
       <Header />
 
-      {/* --- SEÇÃO 1: HERO - FOCO EM VELOCIDADE E SEGURANÇA --- */}
+      {/* --- SEÇÃO 1: HERO --- */}
       <section className="w-full pt-28 md:pt-40 pb-16 md:pb-24 bg-neutral-900 text-white"> 
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Coluna Esquerda: Texto */}
           <div>
             <span className="text-sm font-semibold uppercase text-neutral-400 tracking-wider mb-2 block">Hospedagem de Sites Otimizada</span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
@@ -32,23 +31,15 @@ export default function HospedagemPage() {
               de alta performance da Fyzen. Foco total na experiência do seu usuário e nos resultados do seu negócio.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <a
-                href="/orcamento" // Ou um link para planos?
-                className="bg-white text-neutral-900 font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-neutral-200 transition-all text-center"
-              >
+              <a href="/orcamento" className="bg-white text-neutral-900 font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-neutral-200 transition-all text-center">
                 Ver Planos de Hospedagem
               </a>
-               <a
-                href="#features" 
-                className="bg-transparent border border-neutral-700 text-neutral-300 font-semibold py-3 px-8 rounded-lg hover:bg-neutral-800 hover:border-neutral-600 transition-all text-center"
-              >
+              <a href="#features" className="bg-transparent border border-neutral-700 text-neutral-300 font-semibold py-3 px-8 rounded-lg hover:bg-neutral-800 hover:border-neutral-600 transition-all text-center">
                 Conhecer Recursos
               </a>
             </div>
           </div>
-          {/* Coluna Direita: Placeholder Servidor/Nuvem */}
           <div className="flex justify-center items-center">
-            {/* SUGESTÃO: Use uma imagem abstrata de data center, nuvem ou rede */}
             <div className="w-full aspect-video bg-neutral-800 rounded-lg flex items-center justify-center shadow-lg">
               <CloudLightning size={80} className="text-white opacity-30" />
             </div>
@@ -67,21 +58,17 @@ export default function HospedagemPage() {
                Uma hospedagem lenta ou instável prejudica sua marca, afasta clientes e derruba seu ranking no Google.
              </p>
           </div>
-          {/* Layout de Ícones + Título + Descrição (3 colunas) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-             {/* Item 1 */}
              <div className="text-center">
                 <TrendingUp size={36} className="text-neutral-800 mb-4 mx-auto" />
                 <h4 className="text-xl font-semibold mb-2 text-gray-900">Melhor Posicionamento (SEO)</h4>
                 <p className="text-sm text-gray-600">O Google prioriza sites rápidos. Uma hospedagem otimizada ajuda você a subir no ranking.</p>
              </div>
-             {/* Item 2 */}
               <div className="text-center">
                 <Smile size={36} className="text-neutral-800 mb-4 mx-auto" />
                 <h4 className="text-xl font-semibold mb-2 text-gray-900">Experiência do Usuário Superior</h4>
                 <p className="text-sm text-gray-600">Ninguém gosta de esperar. Sites rápidos mantêm os visitantes engajados e satisfeitos.</p>
              </div>
-             {/* Item 3 */}
               <div className="text-center">
                 <ShoppingCart size={36} className="text-neutral-800 mb-4 mx-auto" />
                 <h4 className="text-xl font-semibold mb-2 text-gray-900">Mais Conversões</h4>
@@ -91,7 +78,7 @@ export default function HospedagemPage() {
         </div>
       </section>
       
-      {/* --- SEÇÃO 3: RECURSOS ESSENCIAIS (Cards Escuros) --- */}
+      {/* --- SEÇÃO 3: RECURSOS ESSENCIAIS --- */}
       <section id="features" className="w-full py-16 md:py-24 bg-gray-50"> 
         <div className="container mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-12">
@@ -102,7 +89,6 @@ export default function HospedagemPage() {
                 Tudo que você precisa para uma presença online de alta performance.
              </p>
           </div>
-          {/* Cards Escuros '.feature-card' */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="feature-card">
               <HardDrive size={36} className="feature-card-icon" />
@@ -153,14 +139,11 @@ export default function HospedagemPage() {
       {/* --- SEÇÃO 4: PERFORMANCE OTIMIZADA --- */}
       <section className="w-full py-16 md:py-24 bg-white text-black">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Coluna Esquerda: Placeholder */}
           <div className="flex justify-center items-center">
-             {/* SUGESTÃO: Imagem de um velocímetro ou gráfico de carregamento rápido */}
              <div className="w-full aspect-video bg-neutral-900 rounded-lg flex items-center justify-center shadow-lg">
                <Wind size={80} className="text-white opacity-30" />
              </div>
           </div>
-          {/* Coluna Direita: Texto */}
           <div>
             <span className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2 block">Velocidade Extrema</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
@@ -191,7 +174,6 @@ export default function HospedagemPage() {
                Implementamos múltiplas camadas de segurança para proteger seu site contra ameaças.
              </p>
           </div>
-          {/* Layout de Ícones e Texto */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
              <div className="text-center">
                 <ShieldCheck size={36} className="text-neutral-800 mb-4 mx-auto" />
@@ -215,7 +197,6 @@ export default function HospedagemPage() {
       {/* --- SEÇÃO 6: MIGRAÇÃO E SUPORTE --- */}
       <section className="w-full py-16 md:py-24 bg-white text-black">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Coluna Esquerda: Texto */}
           <div>
             <span className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2 block">Estamos Com Você</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
@@ -230,7 +211,6 @@ export default function HospedagemPage() {
                para responder suas dúvidas e resolver problemas rapidamente.
             </p>
           </div>
-          {/* Coluna Direita: Placeholder */}
           <div className="flex justify-center items-center">
              <div className="w-full aspect-square bg-neutral-900 rounded-lg flex items-center justify-center shadow-lg">
                <Headset size={80} className="text-white opacity-30" />
@@ -249,10 +229,7 @@ export default function HospedagemPage() {
                 Escolha a hospedagem Fyzen e foque no crescimento do seu negócio, 
                 enquanto cuidamos da sua infraestrutura.
              </p>
-             <a
-                href="/orcamento" // Ou link para a página de planos
-                className="bg-white text-neutral-900 font-semibold py-4 px-12 rounded-lg shadow-lg hover:bg-neutral-200 transition-all text-lg"
-             >
+             <a href="/orcamento" className="bg-white text-neutral-900 font-semibold py-4 px-12 rounded-lg shadow-lg hover:bg-neutral-200 transition-all text-lg">
                 Ver Planos e Preços
              </a>
           </div>

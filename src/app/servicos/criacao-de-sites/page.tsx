@@ -1,18 +1,16 @@
 // app/servicos/criacao-de-sites/page.tsx
 // Se Header/Footer NÃO estão no layout, descomente:
-import Header from '@/app/components/Header';
+// import Header from '@/app/components/Header'; // Removido import não usado (se estiver no layout)
 import Footer from '@/app/components/Footer';
 
-// Ícones específicos e reutilizados
+// Ícones específicos e reutilizados (MonitorSmartphone removido se não usado)
 import { 
-  MonitorSmartphone, // Ícone principal
   LayoutGrid,        // Placeholder
-  Rocket, Search, Users as UsersIcon, BarChart3, // Benefícios (Novos Ícones)
+  Rocket, Search, Users as UsersIcon, BarChart3, // Benefícios 
   Cpu, Shield, CheckCircle,             // Benefícios Específicos
   Users, FastForward, Handshake,        // Por que escolher
   Sparkles, PenTool, Code, Send // Ícones do Processo
 } from 'lucide-react'; 
-// Importe Image se for usar imagens reais
 // import Image from 'next/image';
 
 export default function CriacaoDeSitesPage() {
@@ -43,24 +41,24 @@ export default function CriacaoDeSitesPage() {
                 Solicitar Proposta
               </a>
                <a
-                href="/portfolio" // Link para o portfolio
+                href="/portfolio" 
                 className="bg-transparent border border-neutral-300 text-neutral-700 font-semibold py-3 px-8 rounded-lg hover:bg-neutral-100 hover:border-neutral-400 transition-all text-center"
               >
                 Ver Projetos
               </a>
             </div>
           </div>
-          {/* Coluna Direita: Placeholder Visualmente Sugestivo */}
+          {/* Coluna Direita: Placeholder */}
           <div className="flex justify-center items-center">
-            {/* SUGESTÃO: Use aqui uma imagem de alta qualidade mostrando um site Fyzen em um Mac/PC e celular */}
             <div className="w-full aspect-video bg-neutral-900 rounded-lg flex items-center justify-center shadow-lg">
-              <LayoutGrid size={80} className="text-white opacity-30" />
+              {/* Usando LayoutGrid como placeholder */}
+              <LayoutGrid size={80} className="text-white opacity-30" /> 
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- SEÇÃO 2: BENEFÍCIOS CLAROS (Cards Escuros) --- */}
+      {/* --- SEÇÃO 2: BENEFÍCIOS CLAROS --- */}
       <section className="w-full py-16 md:py-24 bg-gray-50"> 
         <div className="container mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-12">
@@ -71,9 +69,7 @@ export default function CriacaoDeSitesPage() {
                Um site desenvolvido pela Fyzen não é apenas um cartão de visitas, é uma ferramenta de crescimento.
              </p>
           </div>
-          {/* Cards Escuros '.feature-card' */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Ícones e Textos Atualizados */}
             <div className="feature-card">
               <Search size={36} className="feature-card-icon" />
               <h3 className="feature-card-title">Alcance Mais Clientes (SEO)</h3>
@@ -106,7 +102,7 @@ export default function CriacaoDeSitesPage() {
         </div>
       </section>
 
-      {/* --- SEÇÃO 3: NOSSO PROCESSO (Credibilidade) --- */}
+      {/* --- SEÇÃO 3: NOSSO PROCESSO --- */}
       <section className="w-full py-16 md:py-24 bg-white text-black">
          <div className="container mx-auto max-w-6xl px-4">
             <div className="text-center max-w-3xl mx-auto mb-12">
@@ -117,7 +113,6 @@ export default function CriacaoDeSitesPage() {
                   Trabalhamos lado a lado com você em cada etapa para garantir um resultado que supere as expectativas.
                </p>
             </div>
-            {/* Steps com Ícones */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
                <div className="p-4">
                   <div className="bg-neutral-900 rounded-full p-3 mb-3 inline-block">
@@ -151,18 +146,14 @@ export default function CriacaoDeSitesPage() {
          </div>
       </section>
 
-
-      {/* --- SEÇÃO 4: PERFORMANCE E SEO (Detalhe) --- */}
+      {/* --- SEÇÃO 4: PERFORMANCE E SEO --- */}
       <section className="w-full py-16 md:py-24 bg-gray-50 text-black">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Coluna Esquerda: Placeholder Sugestivo */}
           <div className="flex justify-center items-center">
-            {/* SUGESTÃO: Use uma imagem mostrando um score alto no Google PageSpeed Insights ou Lighthouse */}
              <div className="w-full aspect-video bg-neutral-900 rounded-lg flex items-center justify-center shadow-lg">
                <LayoutGrid size={80} className="text-white opacity-30" />
              </div>
           </div>
-          {/* Coluna Direita: Texto Focado em Benefício */}
           <div>
             <span className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2 block">Otimização Contínua</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
@@ -181,19 +172,14 @@ export default function CriacaoDeSitesPage() {
         </div>
       </section>
 
-      {/* --- SEÇÃO 5: TECNOLOGIA E SEGURANÇA (Cards Escuros) --- */}
+      {/* --- SEÇÃO 5: TECNOLOGIA E SEGURANÇA --- */}
       <section className="w-full py-16 md:py-24 bg-white">
         <div className="container mx-auto max-w-6xl px-4">
            <div className="text-center max-w-3xl mx-auto mb-12">
              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                Tecnologia de Ponta e Segurança Robusta
              </h2>
-             {/* Subtítulo opcional */}
-             {/* <p className="text-lg text-gray-600">
-                Seu site construído sobre uma base sólida e confiável.
-             </p> */}
           </div>
-          {/* Cards Escuros '.feature-card' */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="feature-card">
               <Cpu size={36} className="feature-card-icon" />
@@ -220,27 +206,26 @@ export default function CriacaoDeSitesPage() {
         </div>
       </section>
       
-      {/* --- SEÇÃO 6: DEPOIMENTOS / MINI-PORTFOLIO (Credibilidade) --- */}
-      {/* SUGESTÃO: Esta seção é crucial. Adicione depoimentos reais ou links visuais para projetos. */}
+      {/* --- SEÇÃO 6: DEPOIMENTOS (ASPAS CORRIGIDAS) --- */}
        <section className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12">
             O Que Nossos Clientes Dizem
           </h2>
-          {/* Placeholder para Depoimentos - Substitua por depoimentos reais */}
           <div className="grid md:grid-cols-3 gap-8">
+            {/* CORREÇÃO: " trocado por &quot; */}
             <div className="bg-white p-6 rounded-lg shadow border border-gray-200 text-left">
-              <p className="text-gray-600 italic mb-4">"Placeholder: A Fyzen entregou um site incrível que superou nossas expectativas..."</p>
+              <p className="text-gray-600 italic mb-4">&quot;Placeholder: A Fyzen entregou um site incrível que superou nossas expectativas...&quot;</p>
               <p className="font-semibold text-gray-800">- Nome do Cliente</p>
               <p className="text-sm text-gray-500">Empresa do Cliente</p>
             </div>
              <div className="bg-white p-6 rounded-lg shadow border border-gray-200 text-left">
-              <p className="text-gray-600 italic mb-4">"Placeholder: O processo foi transparente e o resultado final nos trouxe muitos leads..."</p>
+              <p className="text-gray-600 italic mb-4">&quot;Placeholder: O processo foi transparente e o resultado final nos trouxe muitos leads...&quot;</p>
               <p className="font-semibold text-gray-800">- Outro Cliente</p>
               <p className="text-sm text-gray-500">Outra Empresa</p>
             </div>
              <div className="bg-white p-6 rounded-lg shadow border border-gray-200 text-left">
-              <p className="text-gray-600 italic mb-4">"Placeholder: Recomendamos a Fyzen pela qualidade técnica e atenção aos detalhes..."</p>
+              <p className="text-gray-600 italic mb-4">&quot;Placeholder: Recomendamos a Fyzen pela qualidade técnica e atenção aos detalhes...&quot;</p>
               <p className="font-semibold text-gray-800">- Mais um Cliente</p>
               <p className="text-sm text-gray-500">Empresa XYZ</p>
             </div>
@@ -248,8 +233,7 @@ export default function CriacaoDeSitesPage() {
         </div>
       </section>
 
-
-      {/* --- SEÇÃO 7: Por que escolher a Fyzen (Reutilizada) --- */}
+      {/* --- SEÇÃO 7: Por que escolher a Fyzen --- */}
       <section className="w-full py-16 md:py-24 bg-neutral-900 text-white">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
@@ -286,7 +270,7 @@ export default function CriacaoDeSitesPage() {
         </div>
       </section>
 
-      {/* --- SEÇÃO 8: CTA FINAL REFORÇADO --- */}
+      {/* --- SEÇÃO 8: CTA FINAL --- */}
        <section className="w-full py-20 md:py-28 bg-white text-center">
           <div className="container mx-auto max-w-3xl px-4">
              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
@@ -304,9 +288,8 @@ export default function CriacaoDeSitesPage() {
           </div>
        </section>
 
-
       {/* Se Header/Footer NÃO estão no layout, descomente: */}
-      <Footer />
+      <Footer /> 
     </main>
   );
 }
