@@ -25,7 +25,7 @@ export default function HomePage() {
       <AccessibilityButton />
       
       {/* --- SEÇÃO 1: HERO (COM IMAGEM OTIMIZADA) --- */}
-      <section className="relative flex items-center justify-center min-h-screen text-white overflow-hidden bg-black">
+      <section className="relative flex items-center justify-center min-h-screen text-white overflow-hidden bg-black pt-20">
         
         {/* 2. MUDANÇA: 'img' -> 'Image' */}
         <div className="absolute inset-0 z-0 opacity-60"> 

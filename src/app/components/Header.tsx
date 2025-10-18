@@ -3,8 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation'; 
-import { useState, useEffect } from 'react'; 
-// 1. IMPORTAR TODOS OS ÍCONES (MENU E SUBMENU)
+// REMOVIDO: useState, useEffect
 import { 
     ChevronDown, 
     MonitorSmartphone, 
@@ -17,17 +16,8 @@ import {
 
 export default function Header() {
   const pathname = usePathname(); 
-  const [isScrolled, setIsScrolled] = useState(false); 
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
+  // REMOVIDO: const [isScrolled, setIsScrolled] = useState(false);
+  // REMOVIDO: useEffect para detectar scroll
 
   // --- Funções de classe (sem mudança) ---
   const getIsActive = (path: string) => {
@@ -38,10 +28,10 @@ export default function Header() {
   const getLinkClass = (path: string) => {
     const isActive = getIsActive(path);
     return [
-      'font-normal tracking-wide relative transition-colors duration-300', // Removido 'group' daqui
+      'font-normal tracking-wide relative transition-colors duration-300',
       isActive ? 'text-white' : 'text-gray-300', 
       'hover:text-white',
-      'flex items-center gap-1.5' // Mantido flex para o ícone ChevronDown
+      'flex items-center gap-1.5'
     ].join(' ');
   };
 
@@ -54,19 +44,16 @@ export default function Header() {
     ].join(' ');
   };
   
-  // Classe para os links do dropdown (ATUALIZADA com flex e gap)
   const dropdownLinkClass = "flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-neutral-800 transition-colors";
-
   // --- Fim das funções de classe ---
 
   return (
+    // ***** MUDANÇA PRINCIPAL AQUI *****
+    // Header agora é SEMPRE fixo com fundo escuro
     <header 
-      className={`top-0 left-0 w-full z-50 py-4 px-4 sm:px-8
-                  transition-all duration-300
-                  ${isScrolled 
-                    ? 'fixed bg-black/90 backdrop-blur-md' 
-                    : 'absolute' 
-                  }`}
+      className={`fixed top-0 left-0 w-full z-50 py-4 px-4 sm:px-8
+                  bg-black/90 backdrop-blur-md`} 
+                  // Removida a lógica condicional e a transição
     >
       
       <nav className="container mx-auto flex justify-between items-center">
@@ -78,44 +65,35 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* Coluna 2: Menu */}
+        {/* Coluna 2: Menu (com dropdown) */}
         <div className="hidden md:flex flex-1 justify-center items-center gap-8">
           
           {/* Link: Página Inicial */}
-          <div className="relative"> {/* Adicionado relative para o sublinhado */}
+          <div className="relative"> 
               <Link href="/" className={getLinkClass('/')}>
                 <span>Página Inicial</span>
               </Link>
               <span className={underlineClass('/')}></span>
           </div>
 
-          {/* 2. CORREÇÃO DO HOVER + ÍCONES */}
-          {/* O 'group' agora está neste 'div' pai */}
+          {/* Menu "Serviços" com Dropdown */}
           <div className="relative group"> 
-            
-            {/* O link "Serviços" (agora dentro do novo 'group') */}
-            <div className='relative'> {/* Adicionado relative para o sublinhado */}
+            <div className='relative'> 
                 <Link href="/servicos" className={getLinkClass('/serviços')}>
                     <span>Serviços</span>
-                    {/* A seta ainda gira */}
                     <ChevronDown size={16} className="transition-transform group-hover:rotate-180 duration-200" />
                 </Link>
-                {/* O sublinhado agora precisa estar aqui */}
                 <span className={underlineClass('/serviços')}></span>
             </div>
-            
-            {/* O Dropdown (agora dentro do novo 'group') */}
             <div className="
-              absolute top-full left-1/2 -translate-x-1/2 pt-3 {/* Adicionado pt-3 para dar espaço */}
+              absolute top-full left-1/2 -translate-x-1/2 pt-3 
               w-60 bg-black/90 backdrop-blur-md 
               border border-gray-800 rounded-lg shadow-lg
               flex flex-col overflow-hidden
-              
               opacity-0 scale-95 pointer-events-none 
               group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto
               transition-all duration-150 ease-out
             ">
-              {/* Links com Ícones */}
               <Link href="/servicos/criacao-de-sites" className={dropdownLinkClass}>
                 <MonitorSmartphone size={16} /> <span>Criação de Sites</span>
               </Link>
@@ -126,10 +104,10 @@ export default function Header() {
                 <Smartphone size={16} /> <span>Criação de APP</span>
               </Link>
               <Link href="/servicos/hospedagem" className={dropdownLinkClass}>
-                <Server size={16} /> <span>Hospedagem</span> {/* Removido 'de Sites' para caber */}
+                <Server size={16} /> <span>Hospedagem</span> 
               </Link>
               <Link href="/servicos/dominio" className={dropdownLinkClass}>
-                <Globe size={16} /> <span>Domínio</span> {/* Removido 'Registro de' para caber */}
+                <Globe size={16} /> <span>Domínio</span> 
               </Link>
               <Link href="/servicos/automatizacao" className={dropdownLinkClass}>
                 <Zap size={16} /> <span>Automatização</span>
