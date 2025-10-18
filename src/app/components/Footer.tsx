@@ -1,7 +1,7 @@
 // app/components/Footer.tsx
 import { Linkedin, Github, Instagram } from 'lucide-react'; 
+import Link from 'next/link'; // 1. IMPORTAR O LINK DO NEXT.JS
 
-// Este é um Componente de Servidor (não precisa de 'use client')
 export default function Footer() {
   return (
     <footer className="bg-black text-neutral-400 py-8">
@@ -10,19 +10,21 @@ export default function Footer() {
           
           {/* Coluna 1: Logo */}
           <div>
-            <a href="/" className="text-2xl font-bold text-white mb-3 block">
+            {/* 2. MUDANÇA: 'a' -> 'Link' */}
+            <Link href="/" className="text-2xl font-bold text-white mb-3 block">
               Fyzen
-            </a>
+            </Link>
           </div>
 
           {/* Coluna 2: Navegação */}
           <div>
             <h5 className="font-semibold text-white mb-4 uppercase text-sm tracking-wider">Navegação</h5>
             <ul className="space-y-2">
-              <li><a href="/" className="hover:text-white transition-colors text-sm">Página Inicial</a></li>
-              <li><a href="/servicos" className="hover:text-white transition-colors text-sm">Serviços</a></li>
-              <li><a href="/portfolio" className="hover:text-white transition-colors text-sm">Portfolio</a></li>
-              <li><a href="/sobre" className="hover:text-white transition-colors text-sm">Sobre</a></li>
+              {/* 3. MUDANÇA: 'a' -> 'Link' */}
+              <li><Link href="/" className="hover:text-white transition-colors text-sm">Página Inicial</Link></li>
+              <li><Link href="/servicos" className="hover:text-white transition-colors text-sm">Serviços</Link></li>
+              <li><Link href="/portfolio" className="hover:text-white transition-colors text-sm">Portfolio</Link></li>
+              <li><Link href="/sobre" className="hover:text-white transition-colors text-sm">Sobre</Link></li>
             </ul>
           </div>
 
@@ -30,8 +32,9 @@ export default function Footer() {
           <div>
             <h5 className="font-semibold text-white mb-4 uppercase text-sm tracking-wider">Legal</h5>
             <ul className="space-y-2">
-              <li><a href="/politica-privacidade" className="hover:text-white transition-colors text-sm">Política de Privacidade</a></li>
-              <li><a href="/termos-de-uso" className="hover:text-white transition-colors text-sm">Termos de Uso</a></li>
+              {/* 4. MUDANÇA: 'a' -> 'Link' */}
+              <li><Link href="/politica-privacidade" className="hover:text-white transition-colors text-sm">Política de Privacidade</Link></li>
+              <li><Link href="/termos-de-uso" className="hover:text-white transition-colors text-sm">Termos de Uso</Link></li>
             </ul>
           </div>
 
@@ -39,9 +42,10 @@ export default function Footer() {
           <div>
             <h5 className="font-semibold text-white mb-4 uppercase text-sm tracking-wider">Conecte-se</h5>
             <div className="flex space-x-4">
-              <a href="#" aria-label="LinkedIn" className="hover:text-white transition-colors"><Linkedin size={20} /></a>
-              <a href="#" aria-label="GitHub" className="hover:text-white transition-colors"><Github size={20} /></a>
-              <a href="https://www.instagram.com/_fyzen/" aria-label="Instagram" className="hover:text-white transition-colors"><Instagram size={20} /></a>
+              {/* Links externos continuam como 'a' */}
+              <a href="#" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="hover:text-white transition-colors"><Linkedin size={20} /></a>
+              <a href="#" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="hover:text-white transition-colors"><Github size={20} /></a>
+              <a href="https://www.instagram.com/_fyzen/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-white transition-colors"><Instagram size={20} /></a>
             </div>
           </div>
 

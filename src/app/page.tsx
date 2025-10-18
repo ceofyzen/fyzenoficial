@@ -5,6 +5,7 @@ import Header from './components/Header';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import AccessibilityButton from './components/AccessibilityButton'; 
 import Footer from './components/Footer'; 
+import Image from 'next/image'; // 1. IMPORTAR O IMAGE DO NEXT.JS
 
 import { 
   // Nossos Serviços
@@ -23,15 +24,19 @@ export default function HomePage() {
       <ScrollToTopButton />
       <AccessibilityButton />
       
-      {/* --- SEÇÃO 1: HERO (COM IMAGEM ESTÁTICA) --- */}
+      {/* --- SEÇÃO 1: HERO (COM IMAGEM OTIMIZADA) --- */}
       <section className="relative flex items-center justify-center min-h-screen text-white overflow-hidden bg-black">
         
+        {/* 2. MUDANÇA: 'img' -> 'Image' */}
         <div className="absolute inset-0 z-0 opacity-60"> 
-          <img
+          <Image
             src="/images/globe-bg-static.jpg" // Caminho para sua imagem estática
             alt="Globo digital"
-            className="object-cover w-full h-full"
+            fill={true} // Faz a imagem preencher o div pai (essencial para fundos)
+            priority={true} // Prioriza o carregamento (bom para a imagem do hero)
+            style={{ objectFit: 'cover' }} // Equivalente ao 'object-cover' do Tailwind
           />
+          {/* O gradiente ainda funciona */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/50"></div>
         </div>
 
@@ -54,8 +59,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- SEÇÃO 2: NOSSOS SERVIÇOS (COM 6 CARDS ESCUROS) --- */}
-      {/* (Sem mudança) */}
+      {/* --- O RESTANTE DAS SEÇÕES CONTINUA IGUAL --- */}
+      {/* --- SEÇÃO 2: NOSSOS SERVIÇOS --- */}
       <section className="relative z-10 bg-white text-black py-20 sm:py-24 overflow-hidden">
         <div className="absolute inset-0 -z-10 [background:radial-gradient(circle_at_50%_30%,_theme(colors.gray.100),_transparent_70%)]" />
         <div className="container mx-auto px-4 max-w-5xl">
@@ -68,7 +73,6 @@ export default function HomePage() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Cards 1-6 (Sem mudança) */}
             <div className="relative bg-neutral-900 text-white rounded-2xl p-8 border border-neutral-800 transition-all duration-300 hover:border-neutral-700 hover:shadow-[0_0_30px_5px_theme(colors.gray.400/0.2)] hover:-translate-y-2">
               <div className="mb-6"><MonitorSmartphone size={32} className="text-white" /></div>
               <h3 className="text-2xl font-semibold mb-3">Criação de Sites</h3>
@@ -104,7 +108,6 @@ export default function HomePage() {
       </section>
 
       {/* --- SEÇÃO 3: Web e Mobile --- */}
-      {/* (Sem mudança) */}
       <section className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className="flex justify-center">
@@ -132,7 +135,6 @@ export default function HomePage() {
       </section>
 
       {/* --- SEÇÃO 4: O que entregamos --- */}
-      {/* (Sem mudança) */}
       <section className="w-full py-16 md:py-24 bg-white">
         <div className="container mx-auto max-w-6xl px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12">
@@ -176,7 +178,6 @@ export default function HomePage() {
       </section>
 
       {/* --- SEÇÃO 5: Software Embarcado --- */}
-      {/* (Sem mudança) */}
       <section className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-16">
@@ -220,10 +221,6 @@ export default function HomePage() {
             <div className="feature-card">
               <CheckCircle size={36} className="feature-card-icon" />
               <h3 className="feature-card-title">Confiabilidade</h3>
-              
-              {/* ***** A CORREÇÃO É AQUI *****
-                Trocado </Da> por </p>
-              */}
               <p className="feature-card-description">
                 Sistemas testados e validados para garantir operação contínua e
                 sem falhas.
@@ -234,7 +231,6 @@ export default function HomePage() {
       </section>
 
       {/* --- SEÇÃO 6: Por que escolher --- */}
-      {/* (Sem mudança) */}
       <section className="w-full py-16 md:py-24 bg-neutral-900 text-white">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>

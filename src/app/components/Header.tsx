@@ -4,7 +4,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation'; 
 import { useState, useEffect } from 'react'; 
-import { ChevronDown } from 'lucide-react'; // 1. IMPORTAR O ÍCONE DE SETA
+// 1. IMPORTAR TODOS OS ÍCONES (MENU E SUBMENU)
+import { 
+    ChevronDown, 
+    MonitorSmartphone, 
+    AppWindow, 
+    Smartphone, 
+    Server, 
+    Globe, 
+    Zap 
+} from 'lucide-react'; 
 
 export default function Header() {
   const pathname = usePathname(); 
@@ -14,33 +23,25 @@ export default function Header() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    
     window.addEventListener('scroll', handleScroll);
-    
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
-  // --- Funções de classe ATUALIZADAS ---
-
-  // 2. LÓGICA ATUALIZADA:
-  // O link agora fica ativo se a URL for EXATA ou se for uma "filha"
-  // Ex: '/servicos' fica ativo em '/servicos/criacao-de-sites'
+  // --- Funções de classe (sem mudança) ---
   const getIsActive = (path: string) => {
-    if (path === '/') {
-      return pathname === path; // Página Inicial só ativa com exatidão
-    }
+    if (path === '/') return pathname === path;
     return pathname === path || pathname.startsWith(path + '/');
   };
 
   const getLinkClass = (path: string) => {
     const isActive = getIsActive(path);
     return [
-      'font-normal tracking-wide relative group transition-colors duration-300',
+      'font-normal tracking-wide relative transition-colors duration-300', // Removido 'group' daqui
       isActive ? 'text-white' : 'text-gray-300', 
       'hover:text-white',
-      'flex items-center gap-1.5' // Adicionado flex para o ícone
+      'flex items-center gap-1.5' // Mantido flex para o ícone ChevronDown
     ].join(' ');
   };
 
@@ -53,8 +54,8 @@ export default function Header() {
     ].join(' ');
   };
   
-  // Classe para os links do dropdown
-  const dropdownLinkClass = "block px-5 py-3 text-sm text-gray-300 hover:text-white hover:bg-neutral-800 transition-colors";
+  // Classe para os links do dropdown (ATUALIZADA com flex e gap)
+  const dropdownLinkClass = "flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-neutral-800 transition-colors";
 
   // --- Fim das funções de classe ---
 
@@ -77,58 +78,81 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* Coluna 2: Menu (COM O SUBMENU) */}
+        {/* Coluna 2: Menu */}
         <div className="hidden md:flex flex-1 justify-center items-center gap-8">
           
           {/* Link: Página Inicial */}
-          <Link href="/" className={getLinkClass('/')}>
-            <span>Página Inicial</span>
-            <span className={underlineClass('/')}></span>
-          </Link>
+          <div className="relative"> {/* Adicionado relative para o sublinhado */}
+              <Link href="/" className={getLinkClass('/')}>
+                <span>Página Inicial</span>
+              </Link>
+              <span className={underlineClass('/')}></span>
+          </div>
 
-          {/* 3. MENU "SERVIÇOS" COM DROPDOWN */}
-          <div className="relative group"> {/* O 'group' que ativa o dropdown */}
+          {/* 2. CORREÇÃO DO HOVER + ÍCONES */}
+          {/* O 'group' agora está neste 'div' pai */}
+          <div className="relative group"> 
             
-            {/* O link "Serviços" */}
-            <Link href="/servicos" className={getLinkClass('/serviços')}>
-              <span>Serviços</span>
-              <ChevronDown size={16} className="transition-transform group-hover:rotate-180 duration-200" />
-              <span className={underlineClass('/serviços')}></span>
-            </Link>
+            {/* O link "Serviços" (agora dentro do novo 'group') */}
+            <div className='relative'> {/* Adicionado relative para o sublinhado */}
+                <Link href="/servicos" className={getLinkClass('/serviços')}>
+                    <span>Serviços</span>
+                    {/* A seta ainda gira */}
+                    <ChevronDown size={16} className="transition-transform group-hover:rotate-180 duration-200" />
+                </Link>
+                {/* O sublinhado agora precisa estar aqui */}
+                <span className={underlineClass('/serviços')}></span>
+            </div>
             
-            {/* O Dropdown em si */}
+            {/* O Dropdown (agora dentro do novo 'group') */}
             <div className="
-              absolute top-full left-1/2 -translate-x-1/2 mt-3 
-              w-60 {/* Largura do menu */}
-              bg-black/90 backdrop-blur-md 
+              absolute top-full left-1/2 -translate-x-1/2 pt-3 {/* Adicionado pt-3 para dar espaço */}
+              w-60 bg-black/90 backdrop-blur-md 
               border border-gray-800 rounded-lg shadow-lg
-              flex flex-col overflow-hidden {/* Layout dos links */}
+              flex flex-col overflow-hidden
               
-              opacity-0 scale-95 pointer-events-none {/* Escondido por padrão */}
-              group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto {/* Mostra no hover */}
+              opacity-0 scale-95 pointer-events-none 
+              group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto
               transition-all duration-150 ease-out
             ">
-              <Link href="/servicos/criacao-de-sites" className={dropdownLinkClass}>Criação de Sites</Link>
-              <Link href="/servicos/criacao-de-saas" className={dropdownLinkClass}>Criação de SaaS</Link>
-              <Link href="/servicos/criacao-de-app" className={dropdownLinkClass}>Criação de APP</Link>
-              <Link href="/servicos/hospedagem" className={dropdownLinkClass}>Hospedagem de Sites</Link>
-              <Link href="/servicos/dominio" className={dropdownLinkClass}>Registro de Domínio</Link>
-              <Link href="/servicos/automatizacao" className={dropdownLinkClass}>Automatização</Link>
+              {/* Links com Ícones */}
+              <Link href="/servicos/criacao-de-sites" className={dropdownLinkClass}>
+                <MonitorSmartphone size={16} /> <span>Criação de Sites</span>
+              </Link>
+              <Link href="/servicos/criacao-de-saas" className={dropdownLinkClass}>
+                <AppWindow size={16} /> <span>Criação de SaaS</span>
+              </Link>
+              <Link href="/servicos/criacao-de-app" className={dropdownLinkClass}>
+                <Smartphone size={16} /> <span>Criação de APP</span>
+              </Link>
+              <Link href="/servicos/hospedagem" className={dropdownLinkClass}>
+                <Server size={16} /> <span>Hospedagem</span> {/* Removido 'de Sites' para caber */}
+              </Link>
+              <Link href="/servicos/dominio" className={dropdownLinkClass}>
+                <Globe size={16} /> <span>Domínio</span> {/* Removido 'Registro de' para caber */}
+              </Link>
+              <Link href="/servicos/automatizacao" className={dropdownLinkClass}>
+                <Zap size={16} /> <span>Automatização</span>
+              </Link>
             </div>
           </div>
           {/* Fim do Dropdown "Serviços" */}
 
           {/* Link: Portfolio */}
-          <Link href="/portfolio" className={getLinkClass('/portfolio')}>
-            <span>Portfolio</span>
-            <span className={underlineClass('/portfolio')}></span>
-          </Link>
+          <div className="relative">
+              <Link href="/portfolio" className={getLinkClass('/portfolio')}>
+                <span>Portfolio</span>
+              </Link>
+              <span className={underlineClass('/portfolio')}></span>
+          </div>
 
           {/* Link: Sobre */}
-          <Link href="/sobre" className={getLinkClass('/sobre')}>
-            <span>Sobre</span>
-            <span className={underlineClass('/sobre')}></span>
-          </Link>
+          <div className="relative">
+              <Link href="/sobre" className={getLinkClass('/sobre')}>
+                <span>Sobre</span>
+              </Link>
+              <span className={underlineClass('/sobre')}></span>
+          </div>
         </div>
 
         {/* Coluna 3: Botões */}
