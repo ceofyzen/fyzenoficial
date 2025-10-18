@@ -4,7 +4,7 @@
 import Header from './components/Header';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import AccessibilityButton from './components/AccessibilityButton'; 
-import Footer from './components/Footer'; // 1. IMPORTAR O NOVO FOOTER
+import Footer from './components/Footer'; 
 
 import { 
   // Nossos Serviços
@@ -13,8 +13,6 @@ import {
   // Novas Seções (do seu arquivo)
   Settings, User, TrendingUp, BarChart, Cpu, Shield, CheckCircle,
   Users, FastForward, Handshake, LayoutGrid
-
-  // 2. Ícones do footer (Linkedin, Github, etc.) foram REMOVIDOS daqui
 } from 'lucide-react'; 
 
 export default function HomePage() {
@@ -25,22 +23,15 @@ export default function HomePage() {
       <ScrollToTopButton />
       <AccessibilityButton />
       
-      {/* --- SEÇÃO 1: HERO (FUNDO COM VÍDEO) --- */}
+      {/* --- SEÇÃO 1: HERO (COM IMAGEM ESTÁTICA) --- */}
       <section className="relative flex items-center justify-center min-h-screen text-white overflow-hidden bg-black">
         
-        {/* Vídeo de Fundo Otimizado */}
         <div className="absolute inset-0 z-0 opacity-60"> 
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
+          <img
+            src="/images/globe-bg-static.jpg" // Caminho para sua imagem estática
+            alt="Globo digital"
             className="object-cover w-full h-full"
-          >
-            <source src="/videos/globe-bg.webm" type="video/webm" />
-            <source src="/videos/globe-bg.mp4" type="video/mp4" />
-            Seu navegador não suporta vídeos.
-          </video>
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/50"></div>
         </div>
 
@@ -229,6 +220,10 @@ export default function HomePage() {
             <div className="feature-card">
               <CheckCircle size={36} className="feature-card-icon" />
               <h3 className="feature-card-title">Confiabilidade</h3>
+              
+              {/* ***** A CORREÇÃO É AQUI *****
+                Trocado </Da> por </p>
+              */}
               <p className="feature-card-description">
                 Sistemas testados e validados para garantir operação contínua e
                 sem falhas.
@@ -277,7 +272,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. O CÓDIGO DO FOOTER FOI SUBSTITUÍDO POR ISTO */}
+      {/* --- SEÇÃO FINAL: FOOTER --- */}
       <Footer />
 
     </main>
