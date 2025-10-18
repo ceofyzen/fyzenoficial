@@ -1,18 +1,19 @@
 // app/layout.tsx
 import type { Metadata } from 'next';
-// 1. Importar a fonte 'Inter'
 import { Inter } from 'next/font/google'; 
 import './globals.css';
 
-// 2. Configurar a fonte 'Inter' com os pesos que estamos usando
-// (light, regular, medium, bold)
+// 1. Importar os componentes de cliente
+import Header from './components/Header';
+import ScrollToTopButton from './components/ScrollToTopButton';
+
+// Configuração da fonte
 const inter = Inter({ 
   subsets: ['latin'],
   weight: ['300', '400', '500', '700'],
 });
 
 export const metadata: Metadata = {
-  // O título e descrição continuam os mesmos
   title: 'Fyzen - Criação de Sites e Soluções Digitais',
   description: 'Transformamos sua ideia em um site profissional de alta performance.',
 };
@@ -24,9 +25,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-br">
-      {/* 3. Aplicar a classe 'inter.className' ao body */}
       <body className={inter.className}>
+        
+        {/* 2. Adicionamos o Header e o Botão aqui */}
+        {/* Eles agora vivem "fora" da página, no layout */}
+        <Header />
+        <ScrollToTopButton />
+        
+        {/* 3. O 'children' aqui será o seu page.tsx */}
         {children}
+
       </body>
     </html>
   );
