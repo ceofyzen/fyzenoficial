@@ -201,7 +201,7 @@ export default function CriacaoDeSaaSPageCrescimento() {
         </div>
       </section>
 
-      {/* --- SEÇÃO 6: CTA FINAL - FOCO NO CRESCIMENTO --- */}
+      {/* --- SEÇÃO 6: CTA FINAL --- */}
        <section className="w-full py-20 md:py-28 bg-neutral-900 text-white text-center">
           <div className="container mx-auto max-w-3xl px-4">
              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">

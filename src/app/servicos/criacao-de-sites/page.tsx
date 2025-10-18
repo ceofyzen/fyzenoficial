@@ -277,7 +277,6 @@ export default function CriacaoDeSitesPage() {
           </div>
        </section>
 
-      {/* Se Header/Footer NÃO estão no layout, descomente: */}
       <Footer />
     </main>
   );
