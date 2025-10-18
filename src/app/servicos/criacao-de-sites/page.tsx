@@ -1,28 +1,25 @@
 // app/servicos/criacao-de-sites/page.tsx
-// Se Header/Footer NÃO estão no layout, descomente:
-// import Header from '@/app/components/Header'; // Removido import não usado (se estiver no layout)
+// Header import removed assuming it's in layout.tsx
 import Footer from '@/app/components/Footer';
 
-// Ícones específicos e reutilizados (MonitorSmartphone removido se não usado)
-import { 
-  LayoutGrid,        // Placeholder
-  Rocket, Search, Users as UsersIcon, BarChart3, // Benefícios 
-  Cpu, Shield, CheckCircle,             // Benefícios Específicos
-  Users, FastForward, Handshake,        // Por que escolher
-  Sparkles, PenTool, Code, Send // Ícones do Processo
-} from 'lucide-react'; 
+// MonitorSmartphone removed from imports
+import {
+  LayoutGrid,
+  Rocket, Search, Users as UsersIcon, BarChart3,
+  Cpu, Shield, CheckCircle,
+  Users, FastForward, Handshake,
+  Sparkles, PenTool, Code, Send
+} from 'lucide-react';
 // import Image from 'next/image';
 
 export default function CriacaoDeSitesPage() {
   return (
     <main>
-      {/* Se Header/Footer NÃO estão no layout, descomente: */}
       {/* <Header /> */}
 
-      {/* --- SEÇÃO 1: HERO ATUALIZADO --- */}
-      <section className="w-full pt-28 md:pt-40 pb-16 md:pb-24 bg-white text-black"> 
+      {/* --- SEÇÃO 1: HERO --- */}
+      <section className="w-full pt-28 md:pt-40 pb-16 md:pb-24 bg-white text-black">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Coluna Esquerda: Texto Persuasivo */}
           <div>
             <span className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2 block">Criação de Sites Profissionais</span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
@@ -30,36 +27,28 @@ export default function CriacaoDeSitesPage() {
             </h1>
             <p className="text-lg text-gray-600 mb-8 max-w-xl">
               Na Fyzen, criamos mais do que sites bonitos. Desenvolvemos plataformas digitais
-              estratégicas, rápidas e otimizadas para <strong className="text-gray-800">converter visitantes em clientes</strong> e 
+              estratégicas, rápidas e otimizadas para <strong className="text-gray-800">converter visitantes em clientes</strong> e
               impulsionar o crescimento do seu negócio.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <a
-                href="/orcamento" 
-                className="bg-neutral-900 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-neutral-700 transition-all text-center"
-              >
+              <a href="/orcamento" className="bg-neutral-900 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-neutral-700 transition-all text-center">
                 Solicitar Proposta
               </a>
-               <a
-                href="/portfolio" 
-                className="bg-transparent border border-neutral-300 text-neutral-700 font-semibold py-3 px-8 rounded-lg hover:bg-neutral-100 hover:border-neutral-400 transition-all text-center"
-              >
+               <a href="/portfolio" className="bg-transparent border border-neutral-300 text-neutral-700 font-semibold py-3 px-8 rounded-lg hover:bg-neutral-100 hover:border-neutral-400 transition-all text-center">
                 Ver Projetos
               </a>
             </div>
           </div>
-          {/* Coluna Direita: Placeholder */}
           <div className="flex justify-center items-center">
             <div className="w-full aspect-video bg-neutral-900 rounded-lg flex items-center justify-center shadow-lg">
-              {/* Usando LayoutGrid como placeholder */}
-              <LayoutGrid size={80} className="text-white opacity-30" /> 
+              <LayoutGrid size={80} className="text-white opacity-30" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- SEÇÃO 2: BENEFÍCIOS CLAROS --- */}
-      <section className="w-full py-16 md:py-24 bg-gray-50"> 
+      {/* --- SEÇÃO 2: BENEFÍCIOS --- */}
+      <section className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-12">
              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -160,12 +149,12 @@ export default function CriacaoDeSitesPage() {
               Construído para <br />Performance e Visibilidade
             </h2>
             <p className="text-lg text-gray-600 mb-4">
-               Um site lento afasta clientes e prejudica seu ranking no Google. Na Fyzen, 
-               performance é prioridade. Usamos tecnologias como Next.js e otimizações 
+               Um site lento afasta clientes e prejudica seu ranking no Google. Na Fyzen,
+               performance é prioridade. Usamos tecnologias como Next.js e otimizações
                avançadas para garantir <strong className="text-gray-800">carregamento ultra-rápido</strong>.
             </p>
              <p className="text-lg text-gray-600">
-               Além disso, implementamos as melhores práticas de SEO desde o início, 
+               Além disso, implementamos as melhores práticas de SEO desde o início,
                para que seu site seja facilmente encontrado pelos seus clientes ideais.
             </p>
           </div>
@@ -205,7 +194,7 @@ export default function CriacaoDeSitesPage() {
           </div>
         </div>
       </section>
-      
+
       {/* --- SEÇÃO 6: DEPOIMENTOS (ASPAS CORRIGIDAS) --- */}
        <section className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4 text-center">
@@ -289,7 +278,7 @@ export default function CriacaoDeSitesPage() {
        </section>
 
       {/* Se Header/Footer NÃO estão no layout, descomente: */}
-      <Footer /> 
+      <Footer />
     </main>
   );
 }

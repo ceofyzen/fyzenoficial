@@ -1,17 +1,17 @@
 // app/servicos/criacao-de-saas/page.tsx
-import Header from '@/app/components/Header'; 
+import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
 // Ícones específicos para esta versão (NÃO USADOS REMOVIDOS)
-import { 
-  DollarSign, BarChartBig, Users, Zap, 
-  ClipboardCheck, Rocket, Scaling, LineChart, 
-  Cloud, DatabaseZap, ShieldCheck, BarChartHorizontalBig, 
-  TrendingUp, 
-  Lightbulb, 
-  Code 
+import {
+  DollarSign, BarChartBig, Users, Zap,
+  ClipboardCheck, Rocket, Scaling, LineChart,
+  Cloud, DatabaseZap, ShieldCheck, BarChartHorizontalBig,
+  TrendingUp,
+  Lightbulb,
+  Code
   // MessageSquare, LayoutGrid REMOVIDOS
-} from 'lucide-react'; 
+} from 'lucide-react';
 // import Image from 'next/image';
 
 export default function CriacaoDeSaaSPageCrescimento() {
@@ -20,7 +20,7 @@ export default function CriacaoDeSaaSPageCrescimento() {
       <Header />
 
       {/* --- SEÇÃO 1: HERO --- */}
-      <section className="w-full pt-28 md:pt-40 pb-16 md:pb-24 bg-white text-black"> 
+      <section className="w-full pt-28 md:pt-40 pb-16 md:pb-24 bg-white text-black">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
             <span className="text-sm font-semibold uppercase text-gray-500 tracking-wider mb-2 block">SaaS para Crescimento</span>
@@ -28,8 +28,8 @@ export default function CriacaoDeSaaSPageCrescimento() {
               Transforme Seu Negócio com Receita <span className="text-gray-700">Recorrente e Escalável</span>
             </h1>
             <p className="text-lg text-gray-600 mb-8 max-w-xl">
-              Crie um Software como Serviço (SaaS) que não apenas resolve problemas, mas 
-              se torna um motor de crescimento contínuo, gerando receita previsível e 
+              Crie um Software como Serviço (SaaS) que não apenas resolve problemas, mas
+              se torna um motor de crescimento contínuo, gerando receita previsível e
               abrindo novas oportunidades de mercado.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -50,7 +50,7 @@ export default function CriacaoDeSaaSPageCrescimento() {
       </section>
 
       {/* --- SEÇÃO 2: SAAS: SEU MOTOR DE CRESCIMENTO --- */}
-      <section className="w-full py-16 md:py-24 bg-gray-50"> 
+      <section className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -76,7 +76,7 @@ export default function CriacaoDeSaaSPageCrescimento() {
           </div>
         </div>
       </section>
-      
+
       {/* --- SEÇÃO 3: DO MVP À LIDERANÇA DE MERCADO --- */}
       <section id="fases" className="w-full py-16 md:py-24 bg-white text-black">
          <div className="container mx-auto max-w-6xl px-4">
@@ -127,7 +127,7 @@ export default function CriacaoDeSaaSPageCrescimento() {
       </section>
 
       {/* --- SEÇÃO 4: TECNOLOGIA QUE GARANTE O FUTURO --- */}
-      <section className="w-full py-16 md:py-24 bg-gray-50"> 
+      <section className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-12">
              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -143,7 +143,7 @@ export default function CriacaoDeSaaSPageCrescimento() {
               </p>
             </div>
             <div className="feature-card">
-              <DatabaseZap size={36} className="feature-card-icon" /> 
+              <DatabaseZap size={36} className="feature-card-icon" />
               <h3 className="feature-card-title">APIs Robustas</h3>
               <p className="feature-card-description">
                 Integrações facilitadas e possibilidade de ecossistema para seu produto.
@@ -208,11 +208,11 @@ export default function CriacaoDeSaaSPageCrescimento() {
                 Pronto para Construir Seu Motor de Crescimento?
              </h2>
              <p className="text-xl text-neutral-300 mb-10">
-                Vamos transformar sua ideia em um SaaS de sucesso. Agende uma conversa 
+                Vamos transformar sua ideia em um SaaS de sucesso. Agende uma conversa
                 e descubra como podemos impulsionar seu negócio.
              </p>
              <a
-                href="/orcamento" 
+                href="/orcamento"
                 className="bg-white text-neutral-900 font-semibold py-4 px-12 rounded-lg shadow-lg hover:bg-neutral-200 transition-all text-lg"
              >
                 Iniciar Meu Projeto SaaS

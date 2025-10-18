@@ -1,17 +1,17 @@
 // app/servicos/hospedagem/page.tsx
-import Header from '@/app/components/Header'; 
+import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
 // Ícones específicos para Hospedagem (NÃO USADOS REMOVIDOS)
-import { 
+import {
   CloudLightning, // Ícone principal
-  TrendingUp, Smile, ShoppingCart, 
-  Gauge, Lock, DatabaseBackup, Globe as GlobeIcon, LifeBuoy, HardDrive, 
-  Wind, 
-  ShieldCheck, ScanEye, FileLock, 
-  Headset, 
+  TrendingUp, Smile, ShoppingCart,
+  Gauge, Lock, DatabaseBackup, Globe as GlobeIcon, LifeBuoy, HardDrive,
+  Wind,
+  ShieldCheck, ScanEye, FileLock,
+  Headset,
   // Server, Network, Truck, CheckCircle REMOVIDOS
-} from 'lucide-react'; 
+} from 'lucide-react';
 
 export default function HospedagemPage() {
   return (
@@ -19,7 +19,7 @@ export default function HospedagemPage() {
       <Header />
 
       {/* --- SEÇÃO 1: HERO --- */}
-      <section className="w-full pt-28 md:pt-40 pb-16 md:pb-24 bg-neutral-900 text-white"> 
+      <section className="w-full pt-28 md:pt-40 pb-16 md:pb-24 bg-neutral-900 text-white">
         <div className="container mx-auto max-w-6xl px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
             <span className="text-sm font-semibold uppercase text-neutral-400 tracking-wider mb-2 block">Hospedagem de Sites Otimizada</span>
@@ -27,7 +27,7 @@ export default function HospedagemPage() {
               Velocidade, Segurança e Confiabilidade <span className="text-neutral-300">para Seu Site</span>
             </h1>
             <p className="text-lg text-neutral-300 mb-8 max-w-xl">
-              Garanta que seu site esteja sempre online, rápido e protegido com a infraestrutura de hospedagem 
+              Garanta que seu site esteja sempre online, rápido e protegido com a infraestrutura de hospedagem
               de alta performance da Fyzen. Foco total na experiência do seu usuário e nos resultados do seu negócio.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -48,7 +48,7 @@ export default function HospedagemPage() {
       </section>
 
       {/* --- SEÇÃO 2: POR QUE A HOSPEDAGEM CERTA É CRUCIAL? --- */}
-      <section className="w-full py-16 md:py-24 bg-white"> 
+      <section className="w-full py-16 md:py-24 bg-white">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -77,9 +77,9 @@ export default function HospedagemPage() {
           </div>
         </div>
       </section>
-      
+
       {/* --- SEÇÃO 3: RECURSOS ESSENCIAIS --- */}
-      <section id="features" className="w-full py-16 md:py-24 bg-gray-50"> 
+      <section id="features" className="w-full py-16 md:py-24 bg-gray-50">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-12">
              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -98,7 +98,7 @@ export default function HospedagemPage() {
               </p>
             </div>
             <div className="feature-card">
-              <Lock size={36} className="feature-card-icon" /> 
+              <Lock size={36} className="feature-card-icon" />
               <h3 className="feature-card-title">Certificado SSL Gratuito</h3>
               <p className="feature-card-description">
                 Conexão segura (HTTPS) para todos os seus sites, sem custo adicional.
@@ -150,13 +150,13 @@ export default function HospedagemPage() {
               Infraestrutura Construída para Performance
             </h2>
             <p className="text-lg text-gray-600 mb-4">
-               Não comprometemos a velocidade. Utilizamos servidores de última geração, 
-               armazenamento SSD NVMe e tecnologias de cache avançadas para garantir 
+               Não comprometemos a velocidade. Utilizamos servidores de última geração,
+               armazenamento SSD NVMe e tecnologias de cache avançadas para garantir
                que seu site carregue o mais rápido possível.
             </p>
              <p className="text-lg text-gray-600">
-               Integramos opcionalmente com as melhores CDNs (Content Delivery Networks) 
-               para entregar seu conteúdo a partir do local mais próximo do seu visitante, 
+               Integramos opcionalmente com as melhores CDNs (Content Delivery Networks)
+               para entregar seu conteúdo a partir do local mais próximo do seu visitante,
                reduzindo a latência globalmente.
             </p>
           </div>
@@ -203,11 +203,11 @@ export default function HospedagemPage() {
               Migração Gratuita e Suporte Humanizado
             </h2>
             <p className="text-lg text-gray-600 mb-6">
-               Mudar de hospedagem pode ser complicado. Deixe que nossa equipe cuide da 
+               Mudar de hospedagem pode ser complicado. Deixe que nossa equipe cuide da
                <strong className="text-gray-800">migração do seu site gratuitamente</strong>, garantindo uma transição suave e sem downtime.
             </p>
              <p className="text-lg text-gray-600">
-               E se precisar de ajuda, nosso suporte técnico especializado está disponível 
+               E se precisar de ajuda, nosso suporte técnico especializado está disponível
                para responder suas dúvidas e resolver problemas rapidamente.
             </p>
           </div>
@@ -226,7 +226,7 @@ export default function HospedagemPage() {
                 Dê ao Seu Site a Performance e Segurança que Ele Merece
              </h2>
              <p className="text-xl text-neutral-300 mb-10">
-                Escolha a hospedagem Fyzen e foque no crescimento do seu negócio, 
+                Escolha a hospedagem Fyzen e foque no crescimento do seu negócio,
                 enquanto cuidamos da sua infraestrutura.
              </p>
              <a href="/orcamento" className="bg-white text-neutral-900 font-semibold py-4 px-12 rounded-lg shadow-lg hover:bg-neutral-200 transition-all text-lg">
