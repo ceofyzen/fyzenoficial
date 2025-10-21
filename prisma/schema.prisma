@@ -7,11 +7,10 @@ generator client {
 datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
-  // Usar foreignKeys para melhor controle pelo banco
   relationMode = "foreignKeys"
 }
 
-// Enum para Módulos (sem alteração)
+// Enum para Módulos
 enum ModuloEnum {
   DIRETORIA
   MARKETING
@@ -23,11 +22,11 @@ enum ModuloEnum {
   SISTEMA
 }
 
-// Enum para Status do Usuário (sem alteração)
+// Enum para Status do Usuário
 enum UserStatus {
   Ativo
   Inativo
-  Ferias // Férias
+  Ferias
   Atestado
 }
 
@@ -48,16 +47,21 @@ model Role {
   name          String   @unique
   description   String?
   departmentId  String
-  department    Department @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Cascade) // onUpdate: Cascade
+  department    Department @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  isDirector    Boolean @default(false)
+  isDirector    Boolean @default(false) // Pode manter ou remover se hierarchyLevel cobrir isso
+  // NOVO CAMPO PARA HIERARQUIA (0 = mais alto)
+  hierarchyLevel Int    @default(99)
+
+  iconName      String?
 
   users         User[]
 
   createdAt     DateTime @default(now())
-  updatedAt     DateTime   @updatedAt
+  updatedAt     DateTime @updatedAt
 
   @@index([departmentId])
+  @@index([hierarchyLevel]) // Adiciona índice para ordenação
 }
 
 model User {
@@ -71,28 +75,26 @@ model User {
   rg            String?
   birthDate     DateTime?
   phone         String?
-  // address       String? // REMOVIDO CAMPO ANTIGO
 
-  // --- NOVOS CAMPOS DE ENDEREÇO ---
-  cep           String? // Código Postal
-  logradouro    String? // Rua, Avenida, etc.
-  numero        String? // Número do imóvel
-  complemento   String? // Apartamento, Bloco, etc.
-  bairro        String? // Bairro
-  cidade        String? // Cidade
-  estado        String? // UF ou Estado por extenso
-  pais          String? @default("Brasil") // País, com default Brasil
-  // --- FIM NOVOS CAMPOS ---
+  // Endereço Detalhado
+  cep           String?
+  logradouro    String?
+  numero        String?
+  complemento   String?
+  bairro        String?
+  cidade        String?
+  estado        String?
+  pais          String?   @default("Brasil")
 
   admissionDate DateTime  @default(now())
   status        UserStatus @default(Ativo)
   salary        Float?
 
   roleId        String?
-  role          Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull, onUpdate: Cascade) // onUpdate: Cascade
+  role          Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   managerId     String?
-  manager       User?     @relation("ManagedBy", fields: [managerId], references: [id], onDelete: SetNull, onUpdate: Cascade) // onUpdate: Cascade
+  manager       User?     @relation("ManagedBy", fields: [managerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   managedUsers  User[]    @relation("ManagedBy")
 
   accounts      Account[]
@@ -119,7 +121,7 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade) // onUpdate: Cascade
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -130,7 +132,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade) // onUpdate: Cascade
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([userId])
 }

@@ -1,29 +1,28 @@
 // src/app/api/cargos/route.ts
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // Cliente Prisma
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Opções de autenticação
+import prisma from '@/lib/prisma';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
 
-// --- GET: Listar todos os Cargos ---
+// --- GET ---
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-  // TODO: Adicionar verificação de permissão
+  if (!session) { return NextResponse.json({ error: 'Não autorizado' }, { status: 401 }); }
 
   try {
     const cargos = await prisma.role.findMany({
       orderBy: [
-        { department: { name: 'asc' } }, // Ordena primeiro pelo nome do departamento
-        { name: 'asc' },                 // Depois pelo nome do cargo
+        { department: { name: 'asc' } },
+        { hierarchyLevel: 'asc' },
+        { name: 'asc' },
       ],
       include: {
-        department: { // Inclui o nome do departamento na resposta
-          select: { name: true }
-        }
+        department: { select: { name: true } },
+        _count: { select: { users: true } } // Inclui contagem
       }
+      // Implicitamente seleciona iconName
     });
+    console.log("API GET /api/cargos - Retornando cargos:", cargos.map(c => ({ id: c.id, name: c.name, iconName: c.iconName }))); // Log para verificar iconName
     return NextResponse.json(cargos);
   } catch (error) {
     console.error("Erro ao buscar cargos:", error);
@@ -31,52 +30,44 @@ export async function GET(request: Request) {
   }
 }
 
-// --- POST: Criar um Novo Cargo ---
+// --- POST ---
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-  // TODO: Adicionar verificação de permissão (ex: só admin/RH pode criar?)
+  if (!session) { return NextResponse.json({ error: 'Não autorizado' }, { status: 401 }); }
 
   try {
     const body = await request.json();
-    const { name, departmentId, description, isDirector } = body;
+    // Log do body recebido
+    console.log("API POST /api/cargos - Body Recebido:", body);
+    const { name, departmentId, description, isDirector, hierarchyLevel, iconName } = body;
 
-    // Validação
-    if (!name || !departmentId) {
-      return NextResponse.json({ error: 'Nome e Departamento são obrigatórios' }, { status: 400 });
-    }
+    if (!name || !departmentId) { return NextResponse.json({ error: 'Nome e Departamento são obrigatórios' }, { status: 400 }); }
 
-    // Verifica se o departamento existe
-    const departmentExists = await prisma.department.findUnique({
-      where: { id: departmentId },
-    });
-    if (!departmentExists) {
-        return NextResponse.json({ error: 'Departamento inválido ou não encontrado' }, { status: 400 });
-    }
+    const level = hierarchyLevel !== undefined && hierarchyLevel !== null ? parseInt(hierarchyLevel, 10) : 99;
+    if (isNaN(level)) { return NextResponse.json({ error: 'Nível Hierárquico inválido.' }, { status: 400 }); }
 
-    // Criação no banco
+    const departmentExists = await prisma.department.findUnique({ where: { id: departmentId } });
+    if (!departmentExists) { return NextResponse.json({ error: 'Departamento inválido' }, { status: 400 }); }
+
     const novoCargo = await prisma.role.create({
       data: {
         name: name,
         departmentId: departmentId,
         description: description,
-        isDirector: isDirector || false, // Garante que seja boolean
+        isDirector: isDirector || false,
+        hierarchyLevel: level,
+        iconName: iconName || null, // Salvar nome do ícone (ou null)
       },
-      include: { // Retorna o departamento junto para confirmação
-        department: { select: { name: true } }
-      }
+      include: { department: { select: { name: true } } }
     });
 
-    console.log("Novo cargo criado no DB:", novoCargo);
+    // Log do cargo criado
+    console.log("Novo cargo criado (verificar iconName):", novoCargo);
     return NextResponse.json(novoCargo, { status: 201 });
 
   } catch (error: any) {
     console.error("Erro ao criar cargo:", error);
-    if (error.code === 'P2002' && error.meta?.target?.includes('name')) {
-        return NextResponse.json({ error: 'Já existe um cargo com este nome' }, { status: 409 });
-    }
+    if (error.code === 'P2002' && error.meta?.target?.includes('name')) { return NextResponse.json({ error: 'Já existe um cargo com este nome' }, { status: 409 }); }
     return NextResponse.json({ error: 'Erro interno ao criar cargo' }, { status: 500 });
   }
 }

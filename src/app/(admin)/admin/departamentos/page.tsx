@@ -1,20 +1,20 @@
 // src/app/(admin)/admin/departamentos/page.tsx
-'use client'; 
+'use client';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { 
-    Building, PlusCircle, Edit, Trash2, Loader2, AlertTriangle, 
+import {
+    Building, PlusCircle, Edit, Trash2, Loader2, AlertTriangle,
     ShieldCheck, // Ícone para Módulo de Acesso
     Users // Ícone para contagem de funcionários
-} from 'lucide-react'; 
+} from 'lucide-react';
 
 // --- Tipo Atualizado (incluindo userCount) ---
 type Department = {
   id: string;
   name: string;
-  accessModule: string; 
+  accessModule: string;
   description: string | null;
   userCount: number; // << Novo campo da API
 };
@@ -55,7 +55,7 @@ function SkeletonCard() {
 
 export default function DepartamentosPage() {
   const router = useRouter();
-  
+
   const [departamentos, setDepartamentos] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +65,7 @@ export default function DepartamentosPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/departamentos'); 
+      const response = await fetch('/api/departamentos');
       if (!response.ok) {
         throw new Error(`Erro HTTP: ${response.status}`);
       }
@@ -82,19 +82,19 @@ export default function DepartamentosPage() {
 
   useEffect(() => {
     fetchDepartamentos();
-  }, []); 
+  }, []);
 
   // --- Funções de Ação (Editar e Excluir) ---
   const handleEdit = (id: string) => {
-    router.push(`/admin/departamentos/editar/${id}`); 
+    router.push(`/admin/departamentos/editar/${id}`);
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Tem certeza que deseja excluir o departamento "${name}"? Cargos e funcionários vinculados podem impedir a exclusão.`)) {
-      return; 
+      return;
     }
-    setError(null); 
-    
+    setError(null);
+
     try {
       const response = await fetch(`/api/departamentos/${id}`, { method: 'DELETE' });
       if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || `Erro HTTP: ${response.status}`); }
@@ -109,14 +109,15 @@ export default function DepartamentosPage() {
 
 
   return (
-    <div className="pt-14"> 
+    <div className="pt-14">
       {/* Cabeçalho da Página */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-          <Building size={32} className="text-indigo-600" /> Departamentos
+          {/* COR DO ÍCONE DO TÍTULO ALTERADA AQUI */}
+          <Building size={32} className="text-neutral-900" /> Departamentos
         </h1>
-        <Link 
-          href="/admin/departamentos/novo" 
+        <Link
+          href="/admin/departamentos/novo"
           className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-4 rounded-lg inline-flex items-center gap-2 transition-colors shadow-sm text-sm"
         >
           <PlusCircle size={18} /> Novo Departamento
@@ -129,8 +130,8 @@ export default function DepartamentosPage() {
            <AlertTriangle size={24} className="mx-auto mb-2" />
            <p className="font-semibold">Falha ao carregar dados!</p>
            <p className="text-sm">{error}</p>
-           <button 
-              onClick={fetchDepartamentos} 
+           <button
+              onClick={fetchDepartamentos}
               className="mt-4 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
            >
               Tentar Novamente
@@ -140,7 +141,7 @@ export default function DepartamentosPage() {
 
       {/* Grid de Cartões */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        
+
         {/* Estado de Loading com Skeletons */}
         {isLoading && (
           <>
@@ -154,8 +155,8 @@ export default function DepartamentosPage() {
         {/* Estado Carregado (com dados) */}
         {!isLoading && !error && departamentos.length > 0 && (
           departamentos.map((depto) => (
-            <div 
-              key={depto.id} 
+            <div
+              key={depto.id}
               className="flex flex-col justify-between bg-white p-5 rounded-xl shadow-lg border border-gray-100 hover:shadow-indigo-100 hover:-translate-y-1 transition-all duration-300"
             >
               {/* Conteúdo do Card */}
@@ -163,7 +164,8 @@ export default function DepartamentosPage() {
                 {/* Cabeçalho do Card (Ícone, Nome, Módulo) */}
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center">
-                    <Building size={24} className="text-indigo-600" />
+                    {/* COR DO ÍCONE DO CARD ALTERADA AQUI */}
+                    <Building size={24} className="text-neutral-900" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-xl font-bold text-gray-900 truncate" title={depto.name}>
@@ -175,12 +177,12 @@ export default function DepartamentosPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Descrição */}
                 <p className="text-sm text-gray-600 mb-4 min-h-[40px] line-clamp-2" title={depto.description || ''}>
                   {depto.description || <span className="italic text-gray-400">Sem descrição</span>}
                 </p>
-                
+
                 {/* Contagem de Funcionários */}
                 <div className="flex items-center gap-2 text-gray-700 mb-5">
                   <Users size={18} />
@@ -191,16 +193,16 @@ export default function DepartamentosPage() {
 
               {/* Rodapé do Card (Ações) */}
               <div className="flex justify-end gap-2 border-t border-gray-100 pt-4 mt-auto">
-                <button 
-                  onClick={() => handleEdit(depto.id)} 
+                <button
+                  onClick={() => handleEdit(depto.id)}
                   className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-1.5 px-3 rounded-md text-xs inline-flex items-center gap-1.5 transition-colors shadow-sm"
                   title="Editar"
                 >
                   <Edit size={14} /> <span>Editar</span>
                 </button>
-                <button 
+                <button
                   onClick={() => handleDelete(depto.id, depto.name)}
-                  className="bg-red-50 hover:bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-md text-xs inline-flex items-center gap-1.5 transition-colors" 
+                  className="bg-red-50 hover:bg-red-100 text-red-700 font-semibold py-1.5 px-3 rounded-md text-xs inline-flex items-center gap-1.5 transition-colors"
                   title="Excluir"
                 >
                   <Trash2 size={14} />
@@ -216,8 +218,8 @@ export default function DepartamentosPage() {
              <Building size={40} className="mx-auto mb-4 text-gray-400" />
              <h3 className="text-lg font-semibold text-gray-700">Nenhum departamento cadastrado</h3>
              <p className="text-sm mt-1 mb-4">Comece por adicionar o seu primeiro departamento.</p>
-             <Link 
-                href="/admin/departamentos/novo" 
+             <Link
+                href="/admin/departamentos/novo"
                 className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-5 rounded-lg inline-flex items-center gap-2 transition-colors shadow-sm text-sm"
             >
                 <PlusCircle size={18} /> Novo Departamento
