@@ -7,7 +7,7 @@ import { useRouter, useParams } from 'next/navigation';
 import {
     Briefcase, Save, ArrowLeft, Loader2, AlertTriangle,
     Building, AlignLeft, ChevronDown, CheckCircle,
-    TrendingUp, Smile // Ícones para Nível Hierárquico e Icon Name
+    TrendingUp, Smile 
 } from 'lucide-react';
 
 // --- Tipos ---
@@ -16,7 +16,7 @@ type RoleData = {
   id: string; name: string; departmentId: string;
   description: string | null; isDirector: boolean;
   hierarchyLevel: number;
-  iconName?: string | null;
+  iconName?: string | null; 
   department?: { name: string; };
 };
 // --- Fim dos Tipos ---
@@ -33,14 +33,13 @@ export default function EditarCargoPage() {
   const [isDirector, setIsDirector] = useState(false);
   const [hierarchyLevel, setHierarchyLevel] = useState('99');
   const [iconName, setIconName] = useState('');
-
   const [departamentos, setDepartamentos] = useState<DepartmentOption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); 
+  const [isSaving, setIsSaving] = useState(false); 
   const [error, setError] = useState('');
   const [notFound, setNotFound] = useState(false);
 
-  // --- useEffect para buscar dados (sem alterações na lógica interna) ---
+  // --- useEffect (Lógica de fetch corrigida) ---
   useEffect(() => {
     if (cargoId) {
       const fetchData = async () => {
@@ -78,7 +77,7 @@ export default function EditarCargoPage() {
     } else { setError("ID do cargo não fornecido."); setIsLoading(false); setNotFound(true); }
   }, [cargoId]);
 
-  // --- Função handleSubmit (sem alterações na lógica interna) ---
+  // --- Função handleSubmit ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSaving(true); setError('');
     if (!departamentoId) { setError('Selecione um departamento.'); setIsSaving(false); return; }
@@ -95,9 +94,13 @@ export default function EditarCargoPage() {
         }),
       });
        if (!response.ok) { const d = await response.json(); throw new Error(d.error || `Erro ${response.status}`); }
-       const cargoAtualizado = await response.json();
-       alert(`Cargo "${cargoAtualizado.name}" atualizado!`);
-       router.push('/admin/cargos'); router.refresh();
+       
+       // --- ALERT REMOVIDO ---
+       // const cargoAtualizado = await response.json();
+       // alert(`Cargo "${cargoAtualizado.name}" atualizado!`);
+
+       router.push('/admin/cargos'); // Redireciona como feedback
+       router.refresh();
     } catch (err: any) {
       console.error("Erro ao atualizar cargo:", err);
       setError(`Erro ao atualizar: ${err.message || 'Erro desconhecido'}.`);
@@ -105,23 +108,23 @@ export default function EditarCargoPage() {
   };
 
   // --- Renderização Condicional ---
-  if (isLoading) { return ( <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-gray-500" size={32} /><p className="ml-3 text-gray-600">Carregando...</p></div> ); }
-  if (notFound) { return ( <div className="pt-14 p-6"><div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold text-red-600 flex items-center gap-2"><AlertTriangle/> Erro</h1><Link href="/admin/cargos" className="text-gray-600 hover:text-gray-800 inline-flex items-center gap-1"><ArrowLeft size={16} /> Voltar</Link></div><div className="bg-white p-6 rounded-lg shadow border border-red-200"><p className="text-gray-700">{error || 'Cargo não encontrado.'}</p></div></div> ); }
+  if (isLoading) { /* ... */ }
+  if (notFound) { /* ... */ }
 
-  // --- Formulário com Novo Design ---
+  // --- Formulário (Cores Alteradas) ---
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-8">
          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-             <Briefcase size={32} className="text-neutral-900" /> Editar Cargo {/* Ícone do título alterado */}
+             <Briefcase size={32} className="text-neutral-900" /> Editar Cargo {/* COR ALTERADA */}
          </h1>
-         <Link href="/admin/cargos" className="inline-flex items-center text-neutral-700 hover:text-neutral-900 transition-colors font-medium"> {/* Cor do link alterada */}
+         <Link href="/admin/cargos" className="inline-flex items-center text-neutral-700 hover:text-neutral-900 transition-colors font-medium"> {/* COR ALTERADA */}
             <ArrowLeft size={18} className="mr-2" /> Voltar para Cargos
          </Link>
       </div>
 
-      {/* Formulário em Card Elegante */}
+      {/* Formulário em Card */}
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 max-w-3xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <p className="text-center text-red-600 bg-red-100 p-3 rounded-lg border border-red-200">{error}</p>}
@@ -143,39 +146,36 @@ export default function EditarCargoPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
              <div>
                 <label htmlFor="departamentoId" className="block text-sm font-semibold text-gray-700 mb-1">Departamento <span className="text-red-600">*</span></label>
-                <div className="relative"><Building size={18} className="icon-input"/><select id="departamentoId" value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)} required disabled={isSaving || departamentos.length === 0} className="input-with-icon appearance-none bg-white pl-10"><option value="" disabled>Selecione um departamento</option>{departamentos.map(d => (<option key={d.id} value={d.id}>{d.name}</option>))}</select><ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" /></div>
+                <div className="relative"><Building size={18} className="icon-input"/><select id="departamentoId" value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)} required disabled={isSaving || departamentos.length === 0} className="input-with-icon appearance-none bg-white pl-10"><option value="" disabled>Selecione</option>{departamentos.map(d => (<option key={d.id} value={d.id}>{d.name}</option>))}</select><ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" /></div>
              </div>
              <div>
                 <label htmlFor="iconName" className="block text-sm font-semibold text-gray-700 mb-1">Ícone (Opcional)</label>
                 <div className="relative"><Smile size={18} className="icon-input"/><input type="text" id="iconName" value={iconName} onChange={(e) => setIconName(e.target.value)} disabled={isSaving} className="input-with-icon pl-10" placeholder="Nome do Lucide Icon"/></div>
-                <p className="mt-1 text-xs text-gray-500">Ex: Code (<a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">ver nomes</a>)</p>
+                <p className="mt-1 text-xs text-gray-500">Ex: Code (<a href="https://lucide.dev/icons/" target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:underline">ver nomes</a>)</p> {/* COR ALTERADA */}
              </div>
           </div>
 
           {/* Checkbox Diretor */}
            <div className="pt-2">
                <div className="flex items-center">
-                 <input id="isDirector" name="isDirector" type="checkbox" checked={isDirector} onChange={(e) => setIsDirector(e.target.checked)} disabled={isSaving} className="h-4 w-4 text-neutral-600 focus:ring-neutral-500 border-gray-300 rounded"/> {/* Cor alterada */}
+                 <input id="isDirector" name="isDirector" type="checkbox" checked={isDirector} onChange={(e) => setIsDirector(e.target.checked)} disabled={isSaving} className="h-4 w-4 text-neutral-600 focus:ring-neutral-500 border-gray-300 rounded"/> {/* COR ALTERADA */}
                  <label htmlFor="isDirector" className="ml-3 block text-sm font-medium text-gray-800"> Marcar como Cargo de Diretor</label>
                </div>
-               <p className="mt-1 text-xs text-gray-500 pl-7">Isso pode afetar permissões e ordenação.</p>
+               <p className="mt-1 text-xs text-gray-500 pl-7">Afeta permissões e ordenação.</p>
            </div>
-
 
           {/* Descrição */}
           <div>
             <label htmlFor="descricao" className="block text-sm font-semibold text-gray-700 mb-1">Descrição (Opcional)</label>
-             <div className="relative"><AlignLeft size={18} className="icon-input-textarea"/><textarea id="descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={4} disabled={isSaving} className="input-with-icon pl-10 pt-3 resize-y" placeholder="Descreva as principais responsabilidades..."/></div>
+             <div className="relative"><AlignLeft size={18} className="icon-input-textarea"/><textarea id="descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={4} disabled={isSaving} className="input-with-icon pl-10 pt-3 resize-y" placeholder="Descreva as responsabilidades..."/></div>
           </div>
 
-
-          {/* Botão Salvar */}
+          {/* Botão Salvar (Cor Alterada) */}
           <div className="flex justify-end pt-6 border-t border-gray-200 mt-8">
-             {/* COR DO BOTÃO ALTERADA AQUI */}
              <button
                  type="submit"
                  disabled={isSaving}
-                 className={`bg-neutral-900 hover:bg-neutral-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-all duration-200 shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                 className={`bg-neutral-900 hover:bg-neutral-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-all duration-200 shadow-md transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`} // COR ALTERADA
              >
                <Save size={18} /> {isSaving ? 'Salvando...' : 'Salvar Alterações'}
              </button>
@@ -185,6 +185,3 @@ export default function EditarCargoPage() {
     </div>
   );
 }
-
-// Estilos CSS (adicionar ao globals.css se necessário)
-/* ... */

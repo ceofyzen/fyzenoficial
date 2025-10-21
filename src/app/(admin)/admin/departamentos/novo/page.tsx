@@ -12,7 +12,7 @@ import {
     CheckCircle // Ícone para Sucesso
 } from 'lucide-react';
 
-// --- Enum (Definido localmente ou importado) ---
+// --- Enum ---
 enum ModuloEnum {
   DIRETORIA = "Diretoria",
   MARKETING = "Marketing",
@@ -31,10 +31,9 @@ export default function NovoDepartamentoPage() {
   const [descricao, setDescricao] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState<string | null>(null); // <<< ESTADO DE SUCESSO
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
-  // Define o módulo de acesso padrão
   useEffect(() => {
     const firstModuleKey = Object.keys(ModuloEnum)[0] as keyof typeof ModuloEnum;
     if (firstModuleKey) {
@@ -42,12 +41,10 @@ export default function NovoDepartamentoPage() {
     }
   }, []);
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
     if (!moduloAcesso) {
        setError('Por favor, selecione um módulo de acesso.');
        setIsLoading(false);
@@ -58,36 +55,24 @@ export default function NovoDepartamentoPage() {
       const response = await fetch('/api/departamentos', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: nome, 
-          accessModule: moduloAcesso, 
-          description: descricao 
-        }), 
+        body: JSON.stringify({ name: nome, accessModule: moduloAcesso, description: descricao }), 
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
-      }
-      
+      if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || `Erro HTTP: ${response.status}`); }
       const novoDepartamento = await response.json();
       
-      // --- MUDANÇA AQUI ---
-      // alert(`Departamento "${novoDepartamento.name}" criado com sucesso!`);
+      // --- ALERT REMOVIDO ---
+      // Em vez de alert, definimos a msg de sucesso para mostrar a tela elegante
       setSuccessMessage(`Departamento "${novoDepartamento.name}" criado com sucesso!`);
-      // router.push('/admin/departamentos'); 
-      // router.refresh(); 
-      // Não redireciona mais automaticamente
 
     } catch (err: any) {
       console.error("Erro ao criar departamento via API:", err);
       setError(`Erro ao criar departamento: ${err.message || 'Erro desconhecido'}.`);
     } finally {
-       setIsLoading(false); // Termina o loading do botão
+       setIsLoading(false);
     }
   };
 
-  // --- RENDERIZAÇÃO DE SUCESSO ---
+  // --- RENDERIZAÇÃO DE SUCESSO (Botão Preto) ---
   if (successMessage) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14 flex items-center justify-center">
@@ -98,7 +83,7 @@ export default function NovoDepartamentoPage() {
           <div className="flex justify-center gap-4">
             <Link 
               href="/admin/departamentos" 
-              className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors shadow-sm"
+              className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors shadow-sm" // COR ALTERADA
             >
               Voltar para Departamentos
             </Link>
@@ -108,15 +93,15 @@ export default function NovoDepartamentoPage() {
     );
   }
 
-  // --- FORMULÁRIO DE CRIAÇÃO ---
+  // --- FORMULÁRIO DE CRIAÇÃO (Cores Alteradas) ---
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-8">
          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-             <Building size={32} className="text-indigo-600" /> Novo Departamento
+             <Building size={32} className="text-neutral-900" /> Novo Departamento {/* COR ALTERADA */}
          </h1>
-         <Link href="/admin/departamentos" className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-medium">
+         <Link href="/admin/departamentos" className="inline-flex items-center text-neutral-700 hover:text-neutral-900 transition-colors font-medium"> {/* COR ALTERADA */}
             <ArrowLeft size={18} className="mr-2" /> Voltar
          </Link>
       </div>
@@ -134,13 +119,8 @@ export default function NovoDepartamentoPage() {
             <div className="relative">
                 <Building size={18} className="icon-input" />
                 <input
-                  type="text"
-                  id="nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="input-with-icon pl-10"
+                  type="text" id="nome" value={nome} onChange={(e) => setNome(e.target.value)}
+                  required disabled={isLoading} className="input-with-icon pl-10"
                   placeholder="Ex: Marketing Digital"
                 />
             </div>
@@ -149,17 +129,13 @@ export default function NovoDepartamentoPage() {
           {/* Campo Módulo de Acesso */}
           <div>
             <label htmlFor="moduloAcesso" className="block text-sm font-semibold text-gray-700 mb-1">
-              Módulo Principal de Acesso <span className="text-red-600">*</span>
+              Módulo Principal <span className="text-red-600">*</span>
             </label>
             <div className="relative">
                 <ShieldCheck size={18} className="icon-input" />
                 <select
-                  id="moduloAcesso"
-                  value={moduloAcesso}
-                  onChange={(e) => setModuloAcesso(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="input-with-icon appearance-none bg-white pl-10"
+                  id="moduloAcesso" value={moduloAcesso} onChange={(e) => setModuloAcesso(e.target.value)}
+                  required disabled={isLoading} className="input-with-icon appearance-none bg-white pl-10"
                 >
                   <option value="" disabled>Selecione um módulo</option>
                   {Object.entries(ModuloEnum).map(([key, label]) => (
@@ -168,7 +144,7 @@ export default function NovoDepartamentoPage() {
                 </select>
                 <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
-             <p className="mt-2 text-xs text-gray-500">Define a qual seção principal do sistema este departamento terá acesso.</p>
+             <p className="mt-2 text-xs text-gray-500">Define a seção principal do sistema.</p>
           </div>
 
           {/* Campo Descrição */}
@@ -179,24 +155,20 @@ export default function NovoDepartamentoPage() {
              <div className="relative">
                  <AlignLeft size={18} className="icon-input-textarea" />
                  <textarea
-                   id="descricao"
-                   value={descricao}
-                   onChange={(e) => setDescricao(e.target.value)}
-                   rows={3}
-                   disabled={isLoading}
-                   className="input-with-icon pl-10 pt-3 resize-y"
-                   placeholder="Descreva brevemente o objetivo deste departamento..."
+                   id="descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)}
+                   rows={3} disabled={isLoading} className="input-with-icon pl-10 pt-3 resize-y"
+                   placeholder="Descreva o objetivo..."
                  />
             </div>
           </div>
 
-          {/* Botão Salvar */}
+          {/* Botão Salvar (Cor Alterada) */}
           <div className="flex justify-end pt-6 border-t mt-8">
             <button
               type="submit"
               disabled={isLoading}
-              className={`bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-colors duration-200 shadow-md transform hover:scale-105
-                          ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`bg-neutral-900 hover:bg-neutral-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-colors duration-200 shadow-md transform hover:scale-105
+                          ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`} // COR ALTERADA
             >
               {isLoading ? (<><Loader2 className="animate-spin" size={20} /> Salvando...</>) : (<><Save size={20} /> Salvar Departamento</>)}
             </button>

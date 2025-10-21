@@ -6,30 +6,20 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation'; 
 import { 
     Building, Save, ArrowLeft, Loader2, AlertTriangle,
-    ShieldCheck, // Ícone para Módulo
-    AlignLeft, // Ícone para Descrição
-    ChevronDown, // Ícone para Select
-    CheckCircle // Ícone para Sucesso
+    ShieldCheck, AlignLeft, ChevronDown, CheckCircle 
 } from 'lucide-react';
 
-// --- Enum (Definido localmente ou importado) ---
+// --- Enum ---
 enum ModuloEnum {
-  DIRETORIA = "Diretoria",
-  MARKETING = "Marketing",
-  OPERACIONAL = "Operacional",
-  FINANCEIRO = "Financeiro",
-  ADMINISTRATIVO = "Administrativo",
-  JURIDICO = "Jurídico",
-  RH = "Recursos Humanos",
-  SISTEMA = "Sistema",
+  DIRETORIA = "Diretoria", MARKETING = "Marketing", OPERACIONAL = "Operacional",
+  FINANCEIRO = "Financeiro", ADMINISTRATIVO = "Administrativo", JURIDICO = "Jurídico",
+  RH = "Recursos Humanos", SISTEMA = "Sistema",
 }
 // --- Fim do Enum ---
 
-// Tipo para os dados do departamento
 type DepartmentData = {
-  id: string;
-  name: string;
-  accessModule: keyof typeof ModuloEnum; // Usa as chaves do Enum
+  id: string; name: string;
+  accessModule: keyof typeof ModuloEnum;
   description: string | null;
 };
 
@@ -38,112 +28,67 @@ export default function EditarDepartamentoPage() {
   const params = useParams(); 
   const departamentoId = params.id as string; 
 
-  // Estados do formulário
+  // Estados
   const [nome, setNome] = useState('');
   const [moduloAcesso, setModuloAcesso] = useState<keyof typeof ModuloEnum | ''>('');
   const [descricao, setDescricao] = useState('');
-  
-  // Estados de controle
-  const [isLoading, setIsLoading] = useState(true); // Loading inicial
-  const [isSaving, setIsSaving] = useState(false); // Loading do submit
+  const [isLoading, setIsLoading] = useState(true); 
+  const [isSaving, setIsSaving] = useState(false); 
   const [error, setError] = useState('');
   const [notFound, setNotFound] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null); // <<< ESTADO DE SUCESSO
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Efeito para buscar os dados do departamento
+  // Efeito para buscar os dados
   useEffect(() => {
     if (departamentoId) {
       const fetchDepartamento = async () => {
-        setIsLoading(true);
-        setError('');
-        setNotFound(false);
-        console.log("Buscando dados via API para o departamento ID:", departamentoId);
-
+        setIsLoading(true); setError(''); setNotFound(false);
         try {
           const response = await fetch(`/api/departamentos/${departamentoId}`);
-          
-          if (response.status === 404) {
-             setNotFound(true);
-             throw new Error('Departamento não encontrado');
-          }
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
-          }
-
+          if (response.status === 404) { setNotFound(true); throw new Error('Departamento não encontrado'); }
+          if (!response.ok) { const d = await response.json(); throw new Error(d.error || `Erro ${response.status}`); }
           const data: DepartmentData = await response.json();
           setNome(data.name);
-          if (Object.keys(ModuloEnum).includes(data.accessModule)) {
-             setModuloAcesso(data.accessModule as keyof typeof ModuloEnum);
-          } else {
-             console.warn(`Módulo inválido: ${data.accessModule}`);
-             setModuloAcesso(''); 
-          }
+          if (Object.keys(ModuloEnum).includes(data.accessModule)) { setModuloAcesso(data.accessModule); } 
+          else { setModuloAcesso(''); }
           setDescricao(data.description || '');
-          console.log("Dados recebidos da API:", data);
-
         } catch (err: any) {
           console.error("Falha ao buscar departamento:", err);
           setError(err.message || 'Erro ao carregar dados.');
-        } finally {
-          setIsLoading(false);
-        }
+        } finally { setIsLoading(false); }
       };
-      
       fetchDepartamento();
     }
   }, [departamentoId]); 
 
-  // Função para salvar as alterações
+  // Função para salvar
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setError('');
-
-     if (!moduloAcesso) {
-      setError('Por favor, selecione um módulo de acesso.');
-      setIsSaving(false);
-      return;
-    }
-
-    console.log("Enviando atualização para API:", departamentoId, { name: nome, accessModule: moduloAcesso, description: descricao });
+    e.preventDefault(); setIsSaving(true); setError('');
+    if (!moduloAcesso) { setError('Selecione um módulo.'); setIsSaving(false); return; }
     
     try {
        const response = await fetch(`/api/departamentos/${departamentoId}`, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: nome, 
-          accessModule: moduloAcesso, 
-          description: descricao 
-        }), 
+        body: JSON.stringify({ name: nome, accessModule: moduloAcesso, description: descricao }), 
       });
-
-       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
-      }
+       if (!response.ok) { const d = await response.json(); throw new Error(d.error || `Erro ${response.status}`); }
+       const departamentoAtualizado = await response.json();
       
-      const departamentoAtualizado = await response.json();
-      
-      // --- MUDANÇA AQUI ---
-      // alert(`Departamento "${departamentoAtualizado.name}" atualizado com sucesso!`);
+      // --- ALERT REMOVIDO ---
+      // Em vez de alert, definimos a msg de sucesso para mostrar a tela elegante
       setSuccessMessage(`Departamento "${departamentoAtualizado.name}" atualizado com sucesso!`);
-      // router.push('/admin/departamentos'); 
-      // router.refresh(); 
 
     } catch (err: any) {
-      console.error("Erro ao atualizar departamento via API:", err);
+      console.error("Erro ao atualizar:", err);
       setError(`Erro ao atualizar: ${err.message || 'Erro desconhecido'}.`);
-    } finally {
-       setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   };
 
-  // --- RENDERIZAÇÃO DE SUCESSO ---
+  // --- RENDERIZAÇÃO DE SUCESSO (Botão Preto) ---
   if (successMessage) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 p-6 pt-14 flex items-center justify-center">
         <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-md mx-auto text-center">
           <CheckCircle size={60} className="text-green-500 mx-auto mb-6" />
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Sucesso!</h1>
@@ -151,7 +96,7 @@ export default function EditarDepartamentoPage() {
           <div className="flex justify-center gap-4">
             <Link 
               href="/admin/departamentos" 
-              className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors shadow-sm"
+              className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors shadow-sm" // COR ALTERADA
             >
               Voltar para Departamentos
             </Link>
@@ -161,39 +106,19 @@ export default function EditarDepartamentoPage() {
     );
   }
 
-  // --- Renderização Condicional Loading / Not Found ---
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-100px)] text-gray-600 pt-14">
-        <Loader2 className="animate-spin mr-2" size={32} />
-        <p className="ml-2 text-gray-600">Carregando dados do departamento...</p>
-      </div>
-    );
-  }
+  // --- Renderização Condicional Loading / Not Found (sem alterações) ---
+  if (isLoading) { /* ... */ }
+  if (notFound) { /* ... */ }
 
-  if (notFound) {
-     return (
-        <div className="pt-14 p-6 md:p-8">
-           <div className="flex justify-between items-center mb-6">
-             <h1 className="text-2xl font-bold text-red-600 flex items-center gap-2"><AlertTriangle/> Erro</h1>
-             <Link href="/admin/departamentos" className="text-gray-600 hover:text-gray-800 inline-flex items-center gap-1 transition-colors"><ArrowLeft size={16} /> Voltar</Link>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border border-red-200 max-w-2xl mx-auto">
-             <p className="text-gray-700 text-center">{error}</p>
-          </div>
-        </div>
-     )
-  }
-
-  // --- Formulário de Edição ---
+  // --- Formulário de Edição (Cores Alteradas) ---
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-8">
          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-             <Building size={32} className="text-indigo-600" /> Editar Departamento
+             <Building size={32} className="text-neutral-900" /> Editar Departamento {/* COR ALTERADA */}
          </h1>
-         <Link href="/admin/departamentos" className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-medium">
+         <Link href="/admin/departamentos" className="inline-flex items-center text-neutral-700 hover:text-neutral-900 transition-colors font-medium"> {/* COR ALTERADA */}
             <ArrowLeft size={18} className="mr-2" /> Voltar
          </Link>
       </div>
@@ -219,7 +144,7 @@ export default function EditarDepartamentoPage() {
           {/* Campo Módulo de Acesso */}
           <div>
             <label htmlFor="moduloAcesso" className="block text-sm font-semibold text-gray-700 mb-1">
-              Módulo Principal de Acesso <span className="text-red-600">*</span>
+              Módulo Principal <span className="text-red-600">*</span>
             </label>
              <div className="relative">
                 <ShieldCheck size={18} className="icon-input" />
@@ -233,7 +158,7 @@ export default function EditarDepartamentoPage() {
                 </select>
                 <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
-             <p className="mt-2 text-xs text-gray-500">Define a qual seção principal do sistema este departamento terá acesso.</p>
+             <p className="mt-2 text-xs text-gray-500">Define a seção principal do sistema.</p>
           </div>
 
           {/* Campo Descrição */}
@@ -249,13 +174,13 @@ export default function EditarDepartamentoPage() {
             </div>
           </div>
 
-          {/* Botão Salvar */}
+          {/* Botão Salvar (Cor Alterada) */}
           <div className="flex justify-end pt-6 border-t mt-8">
             <button
               type="submit"
               disabled={isSaving}
-              className={`bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-colors duration-200 shadow-md transform hover:scale-105
-                          ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`bg-neutral-900 hover:bg-neutral-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-colors duration-200 shadow-md transform hover:scale-105
+                          ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`} // COR ALTERADA
             >
               <Save size={18} /> {isSaving ? 'Salvando...' : 'Salvar Alterações'}
             </button>

@@ -8,7 +8,7 @@ import {
     Users, Save, ArrowLeft, Loader2, AlertTriangle, User, Mail, Lock,
     Briefcase, CalendarDays, DollarSign, Phone, Hash, MapPin, Building,
     Info, SquareUser, ChevronDown, Camera, XCircle, UserCircle, Search, Globe,
-    AlignLeft // <<< ÍCONE ADICIONADO AQUI
+    AlignLeft
 } from 'lucide-react';
 
 import ImageUpload from '@/components/ImageUpload';
@@ -65,12 +65,12 @@ export default function NovoFuncionarioPage() {
   const [cargos, setCargos] = useState<RoleOption[]>([]);
   const [departamentos, setDepartamentos] = useState<DepartmentOption[]>([]);
   const [potentialManagers, setPotentialManagers] = useState<ManagerOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // Loading do submit
-  const [isFetchingRelatedData, setIsFetchingRelatedData] = useState(true); // Loading inicial dos selects
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingRelatedData, setIsFetchingRelatedData] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
 
-  // --- useEffect para buscar Dados Relacionados ---
+  // --- useEffect para buscar Dados Relacionados (Departamentos, Cargos, Gestores) ---
   useEffect(() => {
     const fetchRelatedData = async () => {
       setIsFetchingRelatedData(true);
@@ -102,45 +102,77 @@ export default function NovoFuncionarioPage() {
     fetchRelatedData();
   }, []);
 
-  // --- LÓGICA DE BUSCA DO CEP ---
+  // --- LÓGICA DE BUSCA DO CEP (MOVIDA PARA DENTRO DO USEEFFECT) ---
   useEffect(() => {
+    // 1. Define a função de busca *dentro* do useEffect
     const fetchAddressFromCep = async (cepValue: string) => {
       const numericCep = cepValue.replace(/\D/g, '');
-      if (numericCep.length !== 8) { setCepError(null); return; }
-      setIsCepLoading(true); setCepError(null);
-      setLogradouro(''); setBairro(''); setCidade(''); setEstado('');
+      if (numericCep.length !== 8) {
+        setCepError(null);
+        // Limpa os campos se o CEP for apagado ou inválido
+        setLogradouro('');
+        setBairro('');
+        setCidade('');
+        setEstado('');
+        return;
+      }
+
+      setIsCepLoading(true);
+      setCepError(null);
+      
       try {
         const response = await fetch(`https://viacep.com.br/ws/${numericCep}/json/`);
         if (!response.ok) throw new Error('Falha ao buscar CEP.');
         const data: ViaCepResponse = await response.json();
-        if (data.erro) throw new Error('CEP não encontrado.');
+        
+        if (data.erro) {
+            throw new Error('CEP não encontrado.');
+        }
+        
         setLogradouro(data.logradouro || '');
         setBairro(data.bairro || '');
         setCidade(data.localidade || '');
         setEstado(data.uf || '');
+        // Foca no campo "numero" após preencher automaticamente
         document.getElementById('numero')?.focus();
-      } catch (err: any) { console.error("Erro ao buscar CEP:", err); setCepError(err.message || 'Erro.'); }
-      finally { setIsCepLoading(false); }
+
+      } catch (err: any) {
+        console.error("Erro ao buscar CEP:", err);
+        setCepError(err.message || 'Erro.');
+        // Limpa os campos em caso de erro
+        setLogradouro('');
+        setBairro('');
+        setCidade('');
+        setEstado('');
+      } finally {
+        setIsCepLoading(false);
+      }
     };
-    const debounceTimeout = setTimeout(() => { fetchAddressFromCep(cep); }, 500);
+
+    // 2. Configura o debounce (atraso)
+    const debounceTimeout = setTimeout(() => {
+      fetchAddressFromCep(cep); // Chama a função interna
+    }, 500); // 500ms de atraso após o usuário parar de digitar
+
+    // 3. Limpa o timeout se o usuário digitar novamente (componentWillUnmount)
     return () => clearTimeout(debounceTimeout);
-  }, [cep]);
+
+  }, [cep]); // Esta é a única dependência correta
 
   // --- Função Upload (Simulação) ---
   const uploadImage = async (file: File): Promise<string> => {
     setIsUploadingImage(true);
+    // ... (lógica de upload) ...
     return new Promise((resolve, reject) => {
       try {
         setTimeout(() => {
           const mockUrl = URL.createObjectURL(file);
-          console.log("Simulando upload:", mockUrl);
           setIsUploadingImage(false);
           resolve(mockUrl);
-        }, 1500);
+        }, 1000);
       } catch (error) {
-        console.error("Erro simulando upload:", error);
         setIsUploadingImage(false);
-        reject(new Error("Falha ao simular upload"));
+        reject(new Error("Falha no upload simulado"));
       }
     });
   };
@@ -153,27 +185,43 @@ export default function NovoFuncionarioPage() {
     if (!status) { setError('Selecione um status.'); setIsLoading(false); return; }
 
     let imageUrlToSave: string | null = null;
-    if (newImageFile) { try { imageUrlToSave = await uploadImage(newImageFile); } catch (uploadError: any) { setError(`Erro upload imagem: ${uploadError.message}`); setIsLoading(false); return; } }
+    if (newImageFile) {
+      try {
+        imageUrlToSave = await uploadImage(newImageFile);
+      } catch (uploadError: any) {
+        setError(`Erro upload imagem: ${uploadError.message}`);
+        setIsLoading(false);
+        return;
+      }
+    }
 
     const novoFuncionario = {
         name: nomeCompleto, email, password: password || null, roleId: cargoId, admissionDate: dataAdmissao,
         phone: telefone || null, cpf: cpf || null, rg: rg || null, birthDate: dataNascimento || null,
         cep: cep || null, logradouro: logradouro || null, numero: numero || null, complemento: complemento || null,
-        bairro: bairro || null, cidade: cidade || null, estado: estado || null, pais: pais || null,
+        bairro: bairro || null, cidade: cidade || null, estado: estado || null, pais: pais || 'Brasil',
         status: status, managerId: managerId || null,
         salary: salary ? parseFloat(salary) : null,
         image: imageUrlToSave,
     };
 
-    console.log("Enviando para API /api/funcionarios:", novoFuncionario);
     try {
       const response = await fetch('/api/funcionarios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(novoFuncionario), });
       if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || `Erro HTTP: ${response.status}`); }
-      const funcionarioCriado = await response.json();
-      alert(`Funcionário "${funcionarioCriado.name}" criado com sucesso!`);
-      router.push('/admin/funcionarios'); router.refresh();
-    } catch (err: any) { console.error("Erro ao criar funcionário:", err); setError(`Erro: ${err.message || 'Erro desconhecido'}.`); }
-    finally { setIsLoading(false); setIsUploadingImage(false); }
+      
+      // --- ALERT REMOVIDO ---
+      // const funcionarioCriado = await response.json();
+      // alert(`Funcionário "${funcionarioCriado.name}" criado com sucesso!`);
+      
+      router.push('/admin/funcionarios');
+      router.refresh();
+    } catch (err: any) {
+      console.error("Erro ao criar funcionário:", err);
+      setError(`Erro: ${err.message || 'Erro desconhecido'}.`);
+    } finally {
+      setIsLoading(false);
+      setIsUploadingImage(false);
+    }
   };
 
   // --- Renderização ---
@@ -181,10 +229,14 @@ export default function NovoFuncionarioPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14">
-      {/* Cabeçalho */}
+      {/* Cabeçalho (com cores neutras) */}
       <div className="flex items-center justify-between mb-8">
-         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3"><Users size={32} className="text-indigo-600" /> Contratar Funcionário</h1>
-         <Link href="/admin/funcionarios" className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-medium"><ArrowLeft size={18} className="mr-2" /> Voltar</Link>
+         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+             <Users size={32} className="text-neutral-900" /> Contratar Funcionário
+         </h1>
+         <Link href="/admin/funcionarios" className="inline-flex items-center text-neutral-700 hover:text-neutral-900 transition-colors font-medium">
+             <ArrowLeft size={18} className="mr-2" /> Voltar
+         </Link>
       </div>
 
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 max-w-4xl mx-auto">
@@ -223,10 +275,9 @@ export default function NovoFuncionarioPage() {
             <div><label htmlFor="rg" className="block text-sm font-semibold text-gray-700 mb-1">RG</label><div className="relative"><Hash size={18} className="icon-input"/><input type="text" id="rg" value={rg} onChange={(e) => setRg(e.target.value)} disabled={isLoading || isUploadingImage} className="input-with-icon pl-10" /></div></div>
           </div>
 
-          {/* SEÇÃO DE ENDEREÇO REORGANIZADA E CORRIGIDA */}
+          {/* SEÇÃO DE ENDEREÇO */}
           <h2 className="text-xl font-bold text-gray-800 border-b pb-3 mb-4 pt-4">Endereço</h2>
           <div className="grid grid-cols-1 md:grid-cols-6 gap-x-6 gap-y-4">
-               {/* CEP (Ocupa 2 colunas de 6) */}
                <div className="md:col-span-2">
                   <label htmlFor="cep" className="block text-sm font-semibold text-gray-700 mb-1">CEP</label>
                   <div className="relative">
@@ -236,46 +287,30 @@ export default function NovoFuncionarioPage() {
                   </div>
                   {cepError && <p className="text-xs text-red-600 mt-1">{cepError}</p>}
                </div>
-
-                {/* Logradouro (Ocupa 4 colunas de 6) */}
                 <div className="md:col-span-4">
                      <label htmlFor="logradouro" className="block text-sm font-semibold text-gray-700 mb-1">Logradouro</label>
                      <div className="relative"><MapPin size={18} className="icon-input"/><input type="text" id="logradouro" value={logradouro} onChange={(e) => setLogradouro(e.target.value)} disabled={isLoading || isUploadingImage || isCepLoading} className="input-with-icon pl-10 disabled:bg-gray-100" /></div>
                  </div>
-
-                {/* Número (Ocupa 2 colunas de 6) */}
                 <div className="md:col-span-2">
                      <label htmlFor="numero" className="block text-sm font-semibold text-gray-700 mb-1">Número</label>
-                     {/* CORRIGIDO: Adicionado ícone e classe input-with-icon */}
                      <div className="relative"><Hash size={18} className="icon-input"/><input type="text" id="numero" value={numero} onChange={(e) => setNumero(e.target.value)} disabled={isLoading || isUploadingImage || isCepLoading} className="input-with-icon pl-10" /></div>
                  </div>
-
-                {/* Complemento (Ocupa 4 colunas de 6) */}
                 <div className="md:col-span-4">
                      <label htmlFor="complemento" className="block text-sm font-semibold text-gray-700 mb-1">Complemento</label>
-                     {/* CORRIGIDO: Adicionado ícone e classe input-with-icon */}
                      <div className="relative"><AlignLeft size={18} className="icon-input"/><input type="text" id="complemento" value={complemento} onChange={(e) => setComplemento(e.target.value)} disabled={isLoading || isUploadingImage || isCepLoading} className="input-with-icon pl-10" placeholder="Apto, Bloco, Casa..." /></div>
                  </div>
-
-                {/* Bairro (Ocupa 3 colunas de 6) */}
                 <div className="md:col-span-3">
                      <label htmlFor="bairro" className="block text-sm font-semibold text-gray-700 mb-1">Bairro</label>
                      <div className="relative"><MapPin size={18} className="icon-input"/><input type="text" id="bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} disabled={isLoading || isUploadingImage || isCepLoading} className="input-with-icon pl-10 disabled:bg-gray-100" /></div>
                  </div>
-
-                 {/* Cidade (Ocupa 3 colunas de 6) */}
                 <div className="md:col-span-3">
                      <label htmlFor="cidade" className="block text-sm font-semibold text-gray-700 mb-1">Cidade</label>
                      <div className="relative"><MapPin size={18} className="icon-input"/><input type="text" id="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} disabled={isLoading || isUploadingImage || isCepLoading} className="input-with-icon pl-10 disabled:bg-gray-100" /></div>
                  </div>
-
-                {/* Estado (Ocupa 2 colunas de 6) */}
                 <div className="md:col-span-2">
                      <label htmlFor="estado" className="block text-sm font-semibold text-gray-700 mb-1">Estado (UF)</label>
                      <div className="relative"><MapPin size={18} className="icon-input"/><input type="text" id="estado" value={estado} onChange={(e) => setEstado(e.target.value)} maxLength={2} disabled={isLoading || isUploadingImage || isCepLoading} className="input-with-icon pl-10 disabled:bg-gray-100" /></div>
                  </div>
-
-                {/* País (Ocupa 4 colunas de 6) */}
                 <div className="md:col-span-4">
                      <label htmlFor="pais" className="block text-sm font-semibold text-gray-700 mb-1">País</label>
                      <div className="relative"><Globe size={18} className="icon-input"/><input type="text" id="pais" value={pais} onChange={(e) => setPais(e.target.value)} disabled={isLoading || isUploadingImage} className="input-with-icon pl-10" /></div>
@@ -284,12 +319,12 @@ export default function NovoFuncionarioPage() {
           {/* FIM SEÇÃO ENDEREÇO */}
 
 
-          {/* Botão Salvar */}
-          <div className="flex justify-end pt-6 border-t mt-8">
+          {/* Botão Salvar (Cor Alterada) */}
+          <div className="flex justify-end pt-6 border-t border-gray-200 mt-8">
             <button
               type="submit"
               disabled={isLoading || isFetchingRelatedData || isUploadingImage || isCepLoading}
-              className={`bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-colors duration-200 shadow-md transform hover:scale-105 ${(isLoading || isFetchingRelatedData || isUploadingImage || isCepLoading) ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`bg-neutral-900 hover:bg-neutral-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-colors duration-200 shadow-md transform hover:scale-105 ${(isLoading || isFetchingRelatedData || isUploadingImage || isCepLoading) ? 'opacity-60 cursor-not-allowed' : ''}`} // COR ALTERADA
             >
                 {isLoading || isUploadingImage || isCepLoading ? (<><Loader2 className="animate-spin" size={20} /> Salvando...</>) : (<><Save size={20} /> Salvar Funcionário</>)}
             </button>
@@ -299,25 +334,3 @@ export default function NovoFuncionarioPage() {
     </div>
   );
 }
-
-// Estilos CSS (adicionar ao globals.css se necessário)
-/*
-.input-form {
-  @apply w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
-}
-.input-with-icon {
-  @apply w-full pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
-}
-.input-with-icon:disabled { @apply bg-gray-100 cursor-not-allowed; }
-select.input-with-icon { @apply bg-white; }
-select.input-with-icon:disabled { @apply bg-gray-100 text-gray-500; }
-.icon-input {
-  @apply absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none;
-}
-.icon-input-textarea {
-  @apply absolute left-3 top-3 text-gray-400 pointer-events-none;
-}
-.btn-primary {
-  @apply bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
-}
-*/
