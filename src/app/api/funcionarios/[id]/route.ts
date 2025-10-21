@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
-// Não precisamos mais de bcrypt aqui, pois não alteramos senha via PUT padrão
 
 interface Params {
   params: { id: string };
@@ -15,19 +14,17 @@ export async function GET(request: Request, { params }: Params) {
   if (!session) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
-  // TODO: Verificação de permissão (ex: pode ver dados de outros?)
 
   const { id } = params;
 
   try {
     const funcionario = await prisma.user.findUnique({
       where: { id: id },
-      // Seleciona os campos para retornar (NÃO incluir passwordHash)
       select: {
         id: true, name: true, email: true, isActive: true, admissionDate: true,
         phone: true, cpf: true, rg: true, birthDate: true, address: true,
-        roleId: true, // Retorna o ID do cargo para preencher o form
-        // Opcional: incluir nome do cargo/depto se precisar exibir na edição
+        salary: true, // Incluir salário
+        roleId: true,
         role: { select: { name: true, department: { select: { name: true } } } }
       }
     });
@@ -49,37 +46,31 @@ export async function PUT(request: Request, { params }: Params) {
   if (!session) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
-  // TODO: Verificação de permissão (ex: pode editar a si mesmo? pode editar outros?)
 
   const { id } = params;
 
   try {
     const body = await request.json();
-    // NÃO recebemos 'password' aqui. A alteração de senha deve ser um endpoint/processo separado.
-    const { 
-        name, 
-        email, 
-        roleId, 
-        admissionDate, 
-        phone, 
-        cpf, 
-        rg, 
-        birthDate, 
-        address, 
-        isActive 
+    const {
+        name, email, roleId, admissionDate, phone, cpf, rg,
+        birthDate, address, isActive,
+        salary // Receber salário na atualização
     } = body;
 
-    // Validação
     if (!name || !email || !roleId || !admissionDate) {
       return NextResponse.json({ error: 'Nome, Email, Cargo e Data de Admissão são obrigatórios' }, { status: 400 });
     }
-     // Verifica se o cargo existe
     const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
     if (!roleExists) {
         return NextResponse.json({ error: 'Cargo inválido ou não encontrado' }, { status: 400 });
     }
 
-    // Atualização no banco (SEM passwordHash)
+    // Tenta converter salary para Float, define null se inválido ou ausente
+    const salaryValue = salary ? parseFloat(salary) : null;
+     if (salary && isNaN(salaryValue as any)) {
+      return NextResponse.json({ error: 'Valor do salário inválido.' }, { status: 400 });
+    }
+
     const funcionarioAtualizado = await prisma.user.update({
       where: { id: id },
       data: {
@@ -87,15 +78,16 @@ export async function PUT(request: Request, { params }: Params) {
         email: email,
         roleId: roleId,
         admissionDate: new Date(admissionDate),
-        phone: phone,
-        cpf: cpf,
-        rg: rg,
+        phone: phone || null,
+        cpf: cpf || null,
+        rg: rg || null,
         birthDate: birthDate ? new Date(birthDate) : null,
-        address: address,
+        address: address || null,
         isActive: isActive,
+        salary: salaryValue, // Atualizar salário
       },
-       select: { // Retorna dados atualizados (sem hash)
-        id: true, name: true, email: true, isActive: true, admissionDate: true, roleId: true
+       select: {
+        id: true, name: true, email: true, isActive: true, admissionDate: true, roleId: true, salary: true // Retornar salário atualizado
       }
     });
 
@@ -104,63 +96,45 @@ export async function PUT(request: Request, { params }: Params) {
 
   } catch (error: any) {
     console.error(`Erro ao atualizar funcionário ${id}:`, error);
-    if (error.code === 'P2002') { // Erro de constraint única (email ou cpf)
+    if (error.code === 'P2002') {
         const target = error.meta?.target as string[];
-         if (target?.includes('email')) {
-             return NextResponse.json({ error: 'Já existe outro funcionário com este email' }, { status: 409 });
-        }
-         if (target?.includes('cpf')) {
-             return NextResponse.json({ error: 'Já existe outro funcionário com este CPF' }, { status: 409 });
-        }
+         if (target?.includes('email')) { return NextResponse.json({ error: 'Já existe outro funcionário com este email' }, { status: 409 }); }
+         if (target?.includes('cpf')) { return NextResponse.json({ error: 'Já existe outro funcionário com este CPF' }, { status: 409 }); }
     }
-    if (error.code === 'P2025') { 
+    if (error.code === 'P2025') {
         return NextResponse.json({ error: 'Funcionário não encontrado para atualização' }, { status: 404 });
     }
     return NextResponse.json({ error: 'Erro interno ao atualizar funcionário' }, { status: 500 });
   }
 }
 
-// --- DELETE: Excluir um Funcionário por ID ---
+// --- DELETE: Desativar um Funcionário por ID --- (sem alterações)
 export async function DELETE(request: Request, { params }: Params) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
-  // TODO: Verificação de permissão (ex: não pode excluir a si mesmo? só admin?)
+  if (session.user?.id === params.id) {
+       return NextResponse.json({ error: 'Você não pode desativar sua própria conta.' }, { status: 403 });
+   }
 
   const { id } = params;
 
-   // Impedir auto-exclusão (exemplo)
-   if (session.user?.id === id) {
-       return NextResponse.json({ error: 'Você não pode excluir sua própria conta.' }, { status: 403 });
-   }
-
   try {
-    // Exclusão no banco
-    // A exclusão de User pode ter implicações se ele for chave estrangeira em outras tabelas (Logs, Projetos etc.)
-    // Pode ser melhor apenas desativar (isActive = false)
-    /*
-    await prisma.user.delete({
-      where: { id: id },
-    });
-    */
-    // Alternativa: Desativar em vez de excluir
      const usuarioDesativado = await prisma.user.update({
          where: { id: id },
          data: { isActive: false },
-         select: { id: true, isActive: true } // Retorna apenas o necessário
+         select: { id: true, isActive: true }
      });
 
     console.log(`Funcionário desativado no DB: ${id}`);
-    // return NextResponse.json({ message: 'Funcionário excluído com sucesso' }, { status: 200 }); 
-    return NextResponse.json({ message: 'Funcionário desativado com sucesso' }, { status: 200 }); 
-
+    return NextResponse.json({ message: 'Funcionário desativado com sucesso' }, { status: 200 });
 
   } catch (error: any) {
-    console.error(`Erro ao excluir/desativar funcionário ${id}:`, error);
-     if (error.code === 'P2025') { 
-        return NextResponse.json({ error: 'Funcionário não encontrado para exclusão/desativação' }, { status: 404 });
+    console.error(`Erro ao desativar funcionário ${id}:`, error);
+     if (error.code === 'P2025') {
+        return NextResponse.json({ error: 'Funcionário não encontrado para desativação' }, { status: 404 });
     }
-    return NextResponse.json({ error: 'Erro interno ao excluir/desativar funcionário' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro interno ao desativar funcionário' }, { status: 500 });
   }
 }

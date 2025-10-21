@@ -4,15 +4,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// --- APENAS UM DATASOURCE DEFINIDO AQUI ---
 datasource db {
-  provider     = "postgresql" // Provedor PostgreSQL
-  url          = env("DATABASE_URL") // Lê a URL do arquivo .env
-  relationMode = "prisma" // Recomendado para Neon/Serverless
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
-// --- FIM DO DATASOURCE ---
 
-// Enum para os Módulos de Acesso
 enum ModuloEnum {
   DIRETORIA
   MARKETING
@@ -31,7 +28,6 @@ model Department {
   accessModule ModuloEnum
 
   roles        Role[]
-  // users        User[]
 
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -41,7 +37,6 @@ model Role {
   id            String   @id @default(cuid())
   name          String   @unique
   description   String?
-
   departmentId  String
   department    Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
 
@@ -62,7 +57,6 @@ model User {
   emailVerified DateTime?
   passwordHash  String?
   image         String?
-
   cpf           String?   @unique
   rg            String?
   birthDate     DateTime?
@@ -71,6 +65,9 @@ model User {
 
   admissionDate DateTime  @default(now())
   isActive      Boolean   @default(true)
+
+  // *** NOVA LINHA AQUI ***
+  salary        Float?    // Adicionamos o campo de salário como Float opcional
 
   roleId        String?
   role          Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
@@ -98,8 +95,7 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
