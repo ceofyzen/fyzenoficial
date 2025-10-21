@@ -56,3 +56,6 @@
 .animate-scale-in-ver-top { 
   animation: scale-in-ver-top 0.15s cubic-bezier(0.250, 0.460, 0.450, 0.940) both; 
 }
+
+@keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+.animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
