@@ -59,3 +59,23 @@
 
 @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
 .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+
+/* Base para inputs com ícones */
+.input-with-icon {
+  @apply w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+}
+
+/* Posição do ícone dentro do input */
+.icon-input {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 text-gray-400;
+}
+
+/* Posição do ícone para textareas */
+.icon-input-textarea {
+  @apply absolute left-3 top-3 text-gray-400;
+}
+
+/* Botão primário genérico */
+.btn-primary {
+  @apply bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+}

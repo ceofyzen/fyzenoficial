@@ -3,17 +3,20 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react'; // Import useSession
 // Adicionar ícone Search
 import { Bell, MessageSquare, UserCircle, ChevronDown, Edit, LogOut, KeyRound, SlidersHorizontal, HelpCircle, Search } from 'lucide-react';
 
+// Interface para os props que vêm do Layout (Server Component)
 interface HeaderAdminProps {
     userName: string;
     userRole: string;
     userImage: string | null;
 }
 
-export default function HeaderAdmin({ userName, userRole, userImage }: HeaderAdminProps) {
+// Componente agora usa props E o hook useSession
+export default function HeaderAdmin({ userName: initialUserName, userRole: initialUserRole, userImage: initialUserImage }: HeaderAdminProps) {
+    const { data: session } = useSession(); // USA O HOOK useSession
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(''); // Estado para a busca
 
@@ -31,11 +34,18 @@ export default function HeaderAdmin({ userName, userRole, userImage }: HeaderAdm
         }
     };
 
+    // Determina qual dado exibir: prioriza o session do hook, fallback para props iniciais
+    const userName = session?.user?.name ?? initialUserName;
+    // @ts-ignore - Acessando propriedade customizada roleName
+    const userRole = session?.user?.roleName ?? initialUserRole;
+    const userImage = session?.user?.image ?? initialUserImage;
+
+
     return (
         // Header fixo
         <header className="fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 z-40 flex items-center justify-between px-6 gap-6"> {/* Adicionado gap-6 */}
 
-            {/* Lado Esquerdo: Mensagem */}
+            {/* Lado Esquerdo: Mensagem usa dados atualizados */}
             {/* Adicionado flex-shrink-0 para não encolher */}
             <div className="flex-shrink-0">
                 <span className="text-sm text-gray-600 hidden lg:inline"> {/* Esconde em telas menores que lg */}
@@ -43,7 +53,7 @@ export default function HeaderAdmin({ userName, userRole, userImage }: HeaderAdm
                 </span>
             </div>
 
-            {/* ***** MUDANÇA AQUI: Barra de Pesquisa (Centro) ***** */}
+            {/* ***** Barra de Pesquisa (Centro) ***** */}
             {/* flex-grow permite que a barra ocupe o espaço disponível */}
             <div className="flex-grow max-w-xl mx-4"> {/* Limitando largura máxima */}
                 <form onSubmit={handleSearchSubmit} className="relative">
@@ -79,18 +89,18 @@ export default function HeaderAdmin({ userName, userRole, userImage }: HeaderAdm
                 {/* Separador Vertical (Opcional) */}
                 <div className="h-6 w-px bg-gray-200 mx-2 hidden md:block"></div> {/* Esconde em telas pequenas */}
 
-                {/* Perfil do Usuário */}
+                {/* Perfil do Usuário usa dados atualizados */}
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                         className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900"
                         aria-expanded={isProfileMenuOpen} aria-controls="profile-menu-header"
                     >
-                        {/* Avatar */}
+                        {/* Avatar usa userImage */}
                         <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {userImage ? ( <img src={userImage} alt="Foto de Perfil" className="w-full h-full object-cover" /> ) : ( <UserCircle size={20} className="text-neutral-400" /> )}
                         </div>
-                        {/* Nome e Cargo */}
+                        {/* Nome e Cargo usam userName e userRole */}
                         <div className="text-left hidden md:block mr-1"> {/* hidden md:block */}
                              <p className="text-sm font-medium text-gray-700 truncate leading-tight">{userName}</p>
                              <p className="text-xs text-gray-500 truncate leading-tight">{userRole}</p>
@@ -99,14 +109,13 @@ export default function HeaderAdmin({ userName, userRole, userImage }: HeaderAdm
                         <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : 'rotate-0'} flex-shrink-0`} />
                     </button>
 
-                    {/* Menu Dropdown do Perfil */}
+                    {/* Menu Dropdown do Perfil usa userName e userRole */}
                     {isProfileMenuOpen && (
                         <div
                             id="profile-menu-header"
                             className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg py-1 origin-top-right animate-scale-in-ver-top z-50" // Adicionado z-50
                             role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabIndex={-1}
                         >
-                            {/* ... (itens do menu - Editar Perfil, Sair, etc.) ... */}
                             <div className="px-4 py-2 border-b border-gray-100 sm:hidden">
                                 <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
                                 <p className="text-xs text-gray-500 truncate">{userRole}</p>
