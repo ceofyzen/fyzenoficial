@@ -1,13 +1,18 @@
-// app/(admin)/admin/departamentos/novo/page.tsx
+// src/app/(admin)/admin/departamentos/novo/page.tsx
 'use client'; 
 
-import { useState, useEffect } from 'react'; // Adicionado useEffect para buscar Enum
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
-import { Building, Save, ArrowLeft } from 'lucide-react';
+import { 
+    Building, Save, ArrowLeft, Loader2, AlertTriangle,
+    ShieldCheck, // Ícone para Módulo
+    AlignLeft, // Ícone para Descrição
+    ChevronDown, // Ícone para Select
+    CheckCircle // Ícone para Sucesso
+} from 'lucide-react';
 
-// --- Tipo e Mapeamento do Enum ---
-// Idealmente, viria de um local compartilhado ou API, mas vamos definir aqui por ora
+// --- Enum (Definido localmente ou importado) ---
 enum ModuloEnum {
   DIRETORIA = "Diretoria",
   MARKETING = "Marketing",
@@ -22,21 +27,20 @@ enum ModuloEnum {
 
 export default function NovoDepartamentoPage() {
   const [nome, setNome] = useState('');
-  // Inicia vazio, pois o Enum será carregado ou definido
   const [moduloAcesso, setModuloAcesso] = useState(''); 
   const [descricao, setDescricao] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null); // <<< ESTADO DE SUCESSO
   const router = useRouter();
 
-  // Define o módulo de acesso padrão após a montagem do componente
+  // Define o módulo de acesso padrão
   useEffect(() => {
-    // Define o primeiro valor do Enum como padrão inicial
     const firstModuleKey = Object.keys(ModuloEnum)[0] as keyof typeof ModuloEnum;
     if (firstModuleKey) {
-       setModuloAcesso(firstModuleKey); // Usa a CHAVE (ex: 'DIRETORIA')
+       setModuloAcesso(firstModuleKey);
     }
-  }, []); // Roda apenas uma vez
+  }, []);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,134 +53,152 @@ export default function NovoDepartamentoPage() {
        setIsLoading(false);
        return;
     }
-
-    // --- LÓGICA DE CRIAÇÃO (CONECTADA À API) ---
-    console.log("Enviando para API:", { name: nome, accessModule: moduloAcesso, description: descricao });
     
     try {
       const response = await fetch('/api/departamentos', { 
         method: 'POST', 
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           name: nome, 
-          // Enviamos a CHAVE do enum (ex: 'MARKETING') para a API
           accessModule: moduloAcesso, 
           description: descricao 
         }), 
       });
 
       if (!response.ok) {
-        // Se a API retornou um erro (4xx ou 5xx)
         const errorData = await response.json();
         throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
       }
       
-      // Sucesso!
       const novoDepartamento = await response.json();
-      console.log("Departamento criado via API:", novoDepartamento);
-      alert(`Departamento "${novoDepartamento.name}" criado com sucesso!`);
-      router.push('/admin/departamentos'); // Volta para a lista
-      // O router.refresh() pode ser útil se a página de lista usa Server Components
-      // e precisa revalidar os dados. Se for Client Component com fetch,
-      // a lista antiga pode aparecer brevemente.
-      router.refresh(); 
+      
+      // --- MUDANÇA AQUI ---
+      // alert(`Departamento "${novoDepartamento.name}" criado com sucesso!`);
+      setSuccessMessage(`Departamento "${novoDepartamento.name}" criado com sucesso!`);
+      // router.push('/admin/departamentos'); 
+      // router.refresh(); 
+      // Não redireciona mais automaticamente
 
     } catch (err: any) {
       console.error("Erro ao criar departamento via API:", err);
-      setError(`Erro ao criar departamento: ${err.message || 'Erro desconhecido'}. Verifique o console.`);
-      // Mantém o loading como false para permitir nova tentativa
+      setError(`Erro ao criar departamento: ${err.message || 'Erro desconhecido'}.`);
     } finally {
-       setIsLoading(false); // Garante que o loading termine
+       setIsLoading(false); // Termina o loading do botão
     }
-    // --- Fim da Lógica de Criação ---
   };
 
+  // --- RENDERIZAÇÃO DE SUCESSO ---
+  if (successMessage) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-md mx-auto text-center">
+          <CheckCircle size={60} className="text-green-500 mx-auto mb-6" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Sucesso!</h1>
+          <p className="text-gray-600 mb-8">{successMessage}</p>
+          <div className="flex justify-center gap-4">
+            <Link 
+              href="/admin/departamentos" 
+              className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors shadow-sm"
+            >
+              Voltar para Departamentos
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- FORMULÁRIO DE CRIAÇÃO ---
   return (
-    <div>
-      {/* Cabeçalho (sem alteração) */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-          <Building size={28} /> Novo Departamento
-        </h1>
-        <Link 
-          href="/admin/departamentos" 
-          className="text-gray-600 hover:text-gray-800 inline-flex items-center gap-1 transition-colors"
-        >
-          <ArrowLeft size={16} /> Voltar para Lista
-        </Link>
+    <div className="min-h-screen bg-gray-50 p-6 sm:p-8 md:p-10 pt-14">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between mb-8">
+         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+             <Building size={32} className="text-indigo-600" /> Novo Departamento
+         </h1>
+         <Link href="/admin/departamentos" className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors font-medium">
+            <ArrowLeft size={18} className="mr-2" /> Voltar
+         </Link>
       </div>
 
-      {/* Formulário (sem alteração visual, apenas funcional) */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <p className="text-center text-red-600 bg-red-100 p-2 rounded">{error}</p>}
+      {/* Formulário em Card */}
+      <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 max-w-2xl mx-auto">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && <p className="text-center text-red-600 bg-red-100 p-3 rounded-lg border border-red-200">{error}</p>}
           
           {/* Campo Nome */}
           <div>
-            <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="nome" className="block text-sm font-semibold text-gray-700 mb-1">
               Nome do Departamento <span className="text-red-600">*</span>
             </label>
-            <input
-              type="text"
-              id="nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-              disabled={isLoading}
-              className="input-form"
-              placeholder="Ex: Marketing Digital"
-            />
+            <div className="relative">
+                <Building size={18} className="icon-input" />
+                <input
+                  type="text"
+                  id="nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="input-with-icon pl-10"
+                  placeholder="Ex: Marketing Digital"
+                />
+            </div>
           </div>
 
           {/* Campo Módulo de Acesso */}
           <div>
-            <label htmlFor="moduloAcesso" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="moduloAcesso" className="block text-sm font-semibold text-gray-700 mb-1">
               Módulo Principal de Acesso <span className="text-red-600">*</span>
             </label>
-            <select
-              id="moduloAcesso"
-              value={moduloAcesso} // O valor agora é a CHAVE do enum (ex: 'MARKETING')
-              onChange={(e) => setModuloAcesso(e.target.value)}
-              required
-              disabled={isLoading}
-              className="input-form bg-white"
-            >
-              <option value="" disabled>Selecione um módulo</option>
-              {/* Mapeia CHAVE e VALOR do Enum para as opções */}
-              {Object.entries(ModuloEnum).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option> // value={key} envia a chave
-              ))}
-            </select>
-             <p className="mt-1 text-xs text-gray-500">Define a qual seção principal do sistema este departamento terá acesso.</p>
+            <div className="relative">
+                <ShieldCheck size={18} className="icon-input" />
+                <select
+                  id="moduloAcesso"
+                  value={moduloAcesso}
+                  onChange={(e) => setModuloAcesso(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="input-with-icon appearance-none bg-white pl-10"
+                >
+                  <option value="" disabled>Selecione um módulo</option>
+                  {Object.entries(ModuloEnum).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+             <p className="mt-2 text-xs text-gray-500">Define a qual seção principal do sistema este departamento terá acesso.</p>
           </div>
 
           {/* Campo Descrição */}
           <div>
-            <label htmlFor="descricao" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="descricao" className="block text-sm font-semibold text-gray-700 mb-1">
               Descrição (Opcional)
             </label>
-            <textarea
-              id="descricao"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              rows={3}
-              disabled={isLoading}
-              className="input-form"
-              placeholder="Descreva brevemente o objetivo deste departamento..."
-            />
+             <div className="relative">
+                 <AlignLeft size={18} className="icon-input-textarea" />
+                 <textarea
+                   id="descricao"
+                   value={descricao}
+                   onChange={(e) => setDescricao(e.target.value)}
+                   rows={3}
+                   disabled={isLoading}
+                   className="input-with-icon pl-10 pt-3 resize-y"
+                   placeholder="Descreva brevemente o objetivo deste departamento..."
+                 />
+            </div>
           </div>
 
           {/* Botão Salvar */}
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-6 border-t mt-8">
             <button
               type="submit"
               disabled={isLoading}
-              className={`bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-6 rounded inline-flex items-center gap-2 transition-colors
-                          ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center gap-2 transition-colors duration-200 shadow-md transform hover:scale-105
+                          ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
-              <Save size={18} /> {isLoading ? 'Salvando...' : 'Salvar Departamento'}
+              {isLoading ? (<><Loader2 className="animate-spin" size={20} /> Salvando...</>) : (<><Save size={20} /> Salvar Departamento</>)}
             </button>
           </div>
         </form>
@@ -184,7 +206,3 @@ export default function NovoDepartamentoPage() {
     </div>
   );
 }
-
-// Estilo helper (pode mover para globals.css)
-const InputFormStyle = "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm";
-// Aplique className="input-form"
