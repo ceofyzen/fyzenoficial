@@ -46,8 +46,8 @@ export default function FuncionariosPage() {
   const [funcionarios, setFuncionarios] = useState<FuncionarioListData[]>([]); 
   const [departamentos, setDepartamentos] = useState<DepartmentOption[]>([]); 
   const [cargos, setCargos] = useState<RoleOption[]>([]); 
-  const [isLoading, setIsLoading] = useState(true); 
-  const [isLoadingFilters, setIsLoadingFilters] = useState(true); 
+  const [isLoading, setIsLoading] = useState(true); // Loading principal (para dados dos funcionários)
+  const [isLoadingFilters, setIsLoadingFilters] = useState(true); // Loading dos filtros
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(''); 
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all'); 
@@ -93,11 +93,15 @@ export default function FuncionariosPage() {
 
   // --- Lógica Filtro/Sort ---
   const filteredAndSortedFuncionarios = useMemo(() => { 
-      if (isLoading || !Array.isArray(funcionarios)) return []; 
-      let result = [...funcionarios]; 
+      // Garante que 'funcionarios' seja um array
+      if (!Array.isArray(funcionarios)) return []; 
+      
+      let result = [...funcionarios]; // Copia para não mutar o estado original
+      
       if (selectedDepartment !== 'all') { result = result.filter(f => f.role?.department?.id === selectedDepartment); }
       if (selectedRole !== 'all') { result = result.filter(f => f.role?.id === selectedRole); }
       if (searchTerm.trim()) { const lower = searchTerm.toLowerCase(); result = result.filter(f => f.name?.toLowerCase().includes(lower) || f.email?.toLowerCase().includes(lower)); }
+      
       result.sort((a, b) => { 
         switch (sortBy) {
           case 'admissionDateAsc': return (a.admissionDate ? new Date(a.admissionDate).getTime() : 0) - (b.admissionDate ? new Date(b.admissionDate).getTime() : 0);
@@ -106,43 +110,59 @@ export default function FuncionariosPage() {
         }
       });
       return result; 
-  }, [funcionarios, selectedDepartment, selectedRole, searchTerm, sortBy, isLoading]); 
+  }, [funcionarios, selectedDepartment, selectedRole, searchTerm, sortBy]); // Removido isLoading da dependência
 
   // --- useEffect para selecionar o primeiro ---
   useEffect(() => {
+    // Roda apenas quando a lista filtrada/ordenada MUDAR
     if (!isLoading && filteredAndSortedFuncionarios.length > 0) {
+        // Verifica se o selecionado ainda está na lista
         const isSelectedValid = filteredAndSortedFuncionarios.some(f => f.id === selectedFuncionario?.id);
-        if (!isSelectedValid || !selectedFuncionario) { setSelectedFuncionario(filteredAndSortedFuncionarios[0]); }
-    } else if (!isLoading && filteredAndSortedFuncionarios.length === 0) { setSelectedFuncionario(null); }
-  }, [filteredAndSortedFuncionarios, isLoading, selectedFuncionario]); 
+        // Se não for válido (ou se for o carregamento inicial), define o primeiro
+        if (!isSelectedValid) { 
+            setSelectedFuncionario(filteredAndSortedFuncionarios[0]); 
+        }
+    } else if (!isLoading && filteredAndSortedFuncionarios.length === 0) {
+        setSelectedFuncionario(null); // Limpa seleção se a lista ficar vazia
+    }
+  }, [filteredAndSortedFuncionarios, isLoading]); // Removido selectedFuncionario da dependência para evitar loops
 
   // --- Handlers ---
   const handleEdit = (id: string | undefined) => { if(id) router.push(`/admin/funcionarios/editar/${id}`); };
   const handleDelete = async (id: string | undefined, name: string | null) => { 
       if (!id || !confirm(`Desativar "${name || 'este colaborador'}"?`)) return;
-      const originalFuncionarios = [...funcionarios]; const originalSelected = selectedFuncionario ? {...selectedFuncionario} : null;
+      const originalFuncionarios = [...funcionarios]; 
+      const originalSelected = selectedFuncionario ? {...selectedFuncionario} : null;
+      // Atualização otimista
       setFuncionarios(funcionarios.map(f => f.id === id ? { ...f, isActive: false } : f));
       if (selectedFuncionario?.id === id) { setSelectedFuncionario(prev => prev ? { ...prev, isActive: false } : null); }
+      
       try {
           const response = await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' });
           if (!response.ok) { const d = await response.json(); throw new Error(d.error || `Erro ${response.status}`); }
           alert('Colaborador desativado.');
       } catch (err: any) {
           console.error("Erro ao desativar:", err); alert(`Erro: ${err.message}`);
+          // Reverte em caso de erro
           setFuncionarios(originalFuncionarios); setSelectedFuncionario(originalSelected);
       }
   };
 
   // --- RENDERIZAÇÃO ---
   return (
-    // ***** CORREÇÃO AQUI ***** Aumentado para pt-8 (pode ajustar para pt-6 ou pt-10 se necessário)
-    <div className="pt-12"> 
+    <div> 
       {/* Cabeçalho da Página */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6 px-0"> 
         <h1 className="text-2xl font-bold text-gray-800">Colaboradores</h1>
-        <Link href="/admin/funcionarios/novo" title="Novo Funcionário" className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg inline-flex items-center justify-center transition-colors shadow-sm">
-           <PlusCircle size={20} />
-        </Link>
+        <div className='flex items-center gap-3'>
+            <div className="relative flex-grow sm:w-64">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Search size={18} /></span>
+                <input type="search" placeholder="Pesquisar colaborador..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <Link href="/admin/funcionarios/novo" title="Novo Funcionário" className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg inline-flex items-center justify-center transition-colors shadow-sm">
+               <PlusCircle size={20} />
+            </Link>
+        </div>
       </div>
        
       {/* --- LAYOUT PRINCIPAL: FLEX PARA AS COLUNAS --- */}
@@ -151,13 +171,14 @@ export default function FuncionariosPage() {
         {/* === COLUNA ESQUERDA: DETALHES === */}
         <div className="lg:w-[380px] flex-shrink-0">
             <div className="bg-white rounded-lg shadow p-6 sticky top-24 border border-gray-100 min-h-[300px]"> 
-                {/* Feedback Visual */}
-                {isLoading && <div className="text-center text-gray-500 py-10"><Loader2 className="animate-spin inline-block mr-2" />Carregando Detalhes...</div>}
+                {/* Feedback Visual: Mostra loading SÓ se o selecionado ainda não carregou (raro) */}
+                {isLoading && !selectedFuncionario && <div className="text-center text-gray-500 py-10"><Loader2 className="animate-spin inline-block mr-2" />Carregando Detalhes...</div>}
+                {/* Erro geral */}
                 {!isLoading && error && <div className="text-center text-red-500 py-10"><AlertTriangle className="inline-block mr-2" />{error}</div>} 
                 
-                {/* Conteúdo dos Detalhes */}
-                {!isLoading && !error && selectedFuncionario && ( 
-                    <div>
+                {/* Conteúdo dos Detalhes (Mostra se NÃO estiver carregando E houver um selecionado) */}
+                {!isLoading && selectedFuncionario && ( 
+                    <div className="animate-fade-in">
                         {/* Avatar, Nome, Cargo */}
                         <div className="flex flex-col items-center mb-6 text-center">
                             <div className="w-28 h-28 rounded-full bg-neutral-200 flex items-center justify-center overflow-hidden mb-3 border-4 border-white shadow-lg relative">
@@ -190,7 +211,7 @@ export default function FuncionariosPage() {
                         </div>
                     </div>
                 )}
-                {/* Mensagem se nenhum selecionado */}
+                {/* Mensagem se nenhum selecionado (e não carregando) */}
                 {!isLoading && !error && !selectedFuncionario && (
                     <p className="text-center text-gray-500 py-10">Selecione um colaborador na lista.</p>
                 )}
@@ -226,40 +247,44 @@ export default function FuncionariosPage() {
              {isLoading && <div className="p-6 text-center text-gray-500"><Loader2 className="animate-spin inline-block mr-2" />Carregando lista...</div>}
              {!isLoading && error && <div className="p-6 text-center text-red-500"><AlertTriangle className="inline-block mr-2" />{error}</div>}
              
+             {/* ***** CORREÇÃO 4: Lógica de Renderização Limpa ***** */}
              {!isLoading && !error && (
-                 filteredAndSortedFuncionarios.length === 0 ? (
-                    <p className="text-center text-gray-500 py-6 px-6">Nenhum colaborador encontrado.</p>
-                 ) : (
-                    <div className="divide-y divide-gray-100">
-                      {filteredAndSortedFuncionarios.map((func) => (
-                          <button 
-                            key={func.id}
-                            onClick={() => setSelectedFuncionario(func)} 
-                            className={`w-full grid grid-cols-[auto_1fr_repeat(4,auto)] items-center gap-4 px-4 py-3 text-left transition-colors duration-150 focus:outline-none focus:bg-indigo-50 border-l-4 ${selectedFuncionario?.id === func.id ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent hover:bg-gray-50'}`} 
-                          >
-                             {/* Col 1: Avatar */}
-                             <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
-                                {func.image ? (<img src={func.image} alt={func.name || 'Avatar'} className="w-full h-full object-cover" />) 
-                                : (<UserCircle size={22} className="text-neutral-500" />)}
-                                 <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border border-white ${func.isActive ? 'bg-green-400' : 'bg-red-400'}`} title={func.isActive ? 'Ativo' : 'Inativo'}></span>
-                             </div>
-                             {/* Col 2: Nome/Cargo */}
-                             <div className="min-w-0"> 
-                               <p className="text-sm font-medium text-gray-900 truncate">{func.name || '-'}</p>
-                               <p className="text-xs text-gray-500 truncate">{func.role?.name || 'Sem Cargo'}</p>
-                             </div>
-                             {/* Col 3: Empresa */}
-                             <div className="hidden md:block text-sm text-gray-500 flex-shrink-0 truncate w-24" title="Fyzen">Fyzen</div>
-                             {/* Col 4: Departamento */}
-                             <div className="hidden lg:block text-sm text-gray-500 flex-shrink-0 truncate w-28" title={func.role?.department?.name || ''}>{func.role?.department?.name || ''}</div>
-                             {/* Col 5: Admissão */}
-                             <div className="hidden xl:block text-sm text-gray-500 flex-shrink-0 w-24 text-right">{formatDate(func.admissionDate)}</div>
-                             {/* Col 6: Salário */}
-                             <div className="hidden xl:block text-sm font-semibold text-gray-700 flex-shrink-0 w-20 text-right">R$ ?.???</div>
-                          </button>
-                      ))}
-                    </div>
-                 )
+                 <>
+                    {/* Verifica se o array (garantido pelo useMemo) está vazio */}
+                    {filteredAndSortedFuncionarios.length === 0 ? (
+                        <p className="text-center text-gray-500 py-6 px-6">Nenhum colaborador encontrado.</p>
+                    ) : (
+                        <div className="divide-y divide-gray-100">
+                        {filteredAndSortedFuncionarios.map((func) => (
+                            <button 
+                                key={func.id}
+                                onClick={() => setSelectedFuncionario(func)} 
+                                // Ajustado o grid para corresponder melhor à imagem
+                                className={`w-full grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 px-4 py-3 text-left transition-colors duration-150 focus:outline-none focus:bg-indigo-50 border-l-4 ${selectedFuncionario?.id === func.id ? 'border-indigo-500 bg-indigo-50/50' : 'border-transparent hover:bg-gray-50'}`} 
+                            >
+                                {/* Col 1: Avatar */}
+                                <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+                                    {func.image ? (<img src={func.image} alt={func.name || 'Avatar'} className="w-full h-full object-cover" />) 
+                                    : (<UserCircle size={22} className="text-neutral-500" />)}
+                                    <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border border-white ${func.isActive ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                                </div>
+                                {/* Col 2: Nome/Cargo */}
+                                <div className="min-w-0"> 
+                                <p className="text-sm font-medium text-gray-900 truncate">{func.name || '-'}</p>
+                                <p className="text-xs text-gray-500 truncate">{func.role?.name || 'Sem Cargo'}</p>
+                                </div>
+                                {/* Col 3: Empresa (Placeholder) */}
+                                <div className="hidden md:block text-sm text-gray-500 flex-shrink-0 truncate w-24" title="Fyzen">Fyzen</div>
+                                {/* Col 4: Departamento */}
+                                <div className="hidden lg:block text-sm text-gray-500 flex-shrink-0 truncate w-28" title={func.role?.department?.name || ''}>{func.role?.department?.name || ''}</div>
+                                {/* Col 5: Salário (Placeholder) */}
+                                <div className="hidden xl:block text-sm font-semibold text-gray-700 flex-shrink-0 w-20 text-right">R$ ?.???</div>
+                            </button>
+                        ))}
+                        </div>
+                    )
+                 }
+                 </>
              )}
           </div>
         </div>
@@ -267,9 +292,3 @@ export default function FuncionariosPage() {
     </div>
   );
 }
-
-// Estilos de Badge e animação (podem ir para globals.css)
-/* Exemplo animação (adicione ao globals.css se não estiver lá):
-@keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
-.animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
-*/
