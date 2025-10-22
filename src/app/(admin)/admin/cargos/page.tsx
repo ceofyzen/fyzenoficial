@@ -106,34 +106,55 @@ export default function CargosPage() {
   };
   useEffect(() => { fetchCargos(); }, []);
 
-  // --- groupedCargos (useMemo) ---
+// --- groupedCargos (useMemo com ordenação hierárquica de departamentos) ---
   const groupedCargos = useMemo(() => {
-    if (isLoading || error) return {}; // Retorna objeto vazio se carregando ou erro
-    if (!Array.isArray(cargos)) return {}; // Proteção extra
+    if (isLoading || error || !Array.isArray(cargos)) return {}; // Retorna objeto vazio se carregando, erro ou dados inválidos
 
     try {
+        // 1. Agrupa os cargos por nome do departamento
         const groups = cargos.reduce((acc, cargo) => {
           const deptName = cargo?.department?.name || 'Sem Departamento';
-          if (!acc[deptName]) { acc[deptName] = []; }
-          acc[deptName].push(cargo); return acc;
-        }, {} as GroupedRoles);
+          if (!acc[deptName]) { acc[deptName] = { roles: [], minLevel: 999 }; } // Inicializa com nível alto
+          acc[deptName].roles.push(cargo);
+          // Atualiza o nível mínimo do departamento
+          const currentLevel = cargo.hierarchyLevel ?? 99;
+          if (currentLevel < acc[deptName].minLevel) {
+            acc[deptName].minLevel = currentLevel;
+          }
+          return acc;
+        }, {} as { [departmentName: string]: { roles: Role[]; minLevel: number } }); // Tipo ajustado
 
+        // 2. Ordena os cargos DENTRO de cada departamento (como antes)
         Object.keys(groups).forEach(deptName => {
-          groups[deptName].sort((a, b) => {
-            const levelA = a.hierarchyLevel ?? 99; const levelB = b.hierarchyLevel ?? 99;
-            if (levelA !== levelB) { return levelA - levelB; }
-            return a.name.localeCompare(b.name);
+          groups[deptName].roles.sort((a, b) => {
+            const levelA = a.hierarchyLevel ?? 99;
+            const levelB = b.hierarchyLevel ?? 99;
+            if (levelA !== levelB) { return levelA - levelB; } // Primeiro por nível hierárquico
+            return a.name.localeCompare(b.name); // Depois por nome
           });
         });
 
-        const sortedDepartmentNames = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+        // 3. Ordena os NOMES DOS DEPARTAMENTOS pela hierarquia (minLevel) e depois alfabeticamente
+        const sortedDepartmentNames = Object.keys(groups).sort((a, b) => {
+            const levelDeptA = groups[a].minLevel;
+            const levelDeptB = groups[b].minLevel;
+            if (levelDeptA !== levelDeptB) {
+                return levelDeptA - levelDeptB; // Ordena pelo nível mais alto (menor número)
+            }
+            return a.localeCompare(b); // Se níveis iguais, ordena alfabeticamente
+        });
+
+        // 4. Cria o objeto final ordenado contendo apenas a lista de cargos
         const sortedGroupedCargos = sortedDepartmentNames.reduce((acc, deptName) => {
-          acc[deptName] = groups[deptName]; return acc;
-        }, {} as GroupedRoles);
+          acc[deptName] = groups[deptName].roles; // Pega apenas o array de roles ordenado
+          return acc;
+        }, {} as GroupedRoles); // Usa o tipo original GroupedRoles
 
         return sortedGroupedCargos;
+
     } catch (e) {
          console.error("Erro ao processar groupedCargos:", e);
+         setError("Erro ao organizar os cargos por departamento."); // Informa o usuário
          return {}; // Retorna objeto vazio em caso de erro
     }
   }, [cargos, isLoading, error]);
@@ -220,31 +241,36 @@ export default function CargosPage() {
                 {/* Grid de Cards para os Cargos */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
                   {rolesInDept.map((cargo) => (
-                    <div
+<div
                       key={cargo.id}
                       className="flex flex-col justify-between bg-white p-5 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1 relative group"
                     >
-                      {/* ... (Badge Diretor) ... */}
-                      {cargo.isDirector && (
-                           <div className="absolute top-3 right-3 bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1 opacity-90 z-10">
-                             <ShieldCheck size={14} /> Diretor
-                           </div>
-                        )}
+                      {/* BADGE DIRETOR FOI REMOVIDO DAQUI */}
 
                       {/* Header do Card (Ícone Dinâmico) */}
                       <div className="flex items-start gap-4 mb-4">
                         <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center shadow bg-gray-100 text-neutral-700`}
                            title={cargo.iconName ? `Ícone: ${cargo.iconName}` : 'Ícone Padrão'}
                          >
-                           <DynamicLucideIcon name={cargo.iconName} fallback={Briefcase} size={20} />
+                           <DynamicLucideIcon name={cargo.iconName ?? undefined} fallback={Briefcase} size={20} />
                          </div>
                         <div className="flex-1 mt-0.5">
-                          <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1 truncate" title={cargo.name}>
+                          {/* Título - Removido 'truncate', adicionado 'break-words' se necessário */}
+                          <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1 break-words" title={cargo.name}>
                            {cargo.name}
                           </h3>
-                          <p className="text-sm text-gray-500 flex items-center gap-1">
-                             <Hash size={14} /> Nível {cargo.hierarchyLevel}
-                          </p>
+                          {/* Nível e Badge Diretor agrupados */}
+                          <div className="flex items-center gap-2 flex-wrap"> {/* Adicionado flex-wrap para responsividade */}
+                              <p className="text-sm text-gray-500 flex items-center gap-1">
+                                 <Hash size={14} /> Nível {cargo.hierarchyLevel}
+                              </p>
+                              {/* BADGE DIRETOR MOVIDO PARA CÁ */}
+                              {cargo.isDirector && (
+                                <div className="bg-yellow-100 text-yellow-700 text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <ShieldCheck size={14} /> Diretor
+                                </div>
+                              )}
+                          </div>
                         </div>
                       </div>
 

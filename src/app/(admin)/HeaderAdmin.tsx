@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { signOut, useSession } from 'next-auth/react'; // Import useSession
-// Adicionar ícone Search
 import { Bell, MessageSquare, UserCircle, ChevronDown, Edit, LogOut, KeyRound, SlidersHorizontal, HelpCircle, Search } from 'lucide-react';
 
 // Interface para os props que vêm do Layout (Server Component)
@@ -16,7 +15,8 @@ interface HeaderAdminProps {
 
 // Componente agora usa props E o hook useSession
 export default function HeaderAdmin({ userName: initialUserName, userRole: initialUserRole, userImage: initialUserImage }: HeaderAdminProps) {
-    const { data: session } = useSession(); // USA O HOOK useSession
+    // Obter o status da sessão
+    const { data: session, status } = useSession(); // Adicionado 'status'
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(''); // Estado para a busca
 
@@ -34,11 +34,15 @@ export default function HeaderAdmin({ userName: initialUserName, userRole: initi
         }
     };
 
-    // Determina qual dado exibir: prioriza o session do hook, fallback para props iniciais
-    const userName = session?.user?.name ?? initialUserName;
+    // Lógica refinada para exibir dados
+    // Prioriza dados da sessão do hook SE autenticado, senão usa os props iniciais
+    const isLoadingSession = status === 'loading';
+    const isAuthenticated = status === 'authenticated';
+
+    const userName = isAuthenticated && session?.user?.name ? session.user.name : initialUserName;
     // @ts-ignore - Acessando propriedade customizada roleName
-    const userRole = session?.user?.roleName ?? initialUserRole;
-    const userImage = session?.user?.image ?? initialUserImage;
+    const userRole = isAuthenticated && session?.user?.roleName ? session.user.roleName : initialUserRole;
+    const userImage = isAuthenticated && session?.user?.image ? session.user.image : initialUserImage;
 
 
     return (
@@ -49,7 +53,8 @@ export default function HeaderAdmin({ userName: initialUserName, userRole: initi
             {/* Adicionado flex-shrink-0 para não encolher */}
             <div className="flex-shrink-0">
                 <span className="text-sm text-gray-600 hidden lg:inline"> {/* Esconde em telas menores que lg */}
-                    Seja Bem vindo, <span className="font-medium text-gray-800">{userRole}</span> <span className="font-semibold text-neutral-900">{userName}</span>!
+                   {/* Usa as variáveis refinadas */}
+                   Seja Bem vindo, <span className="font-medium text-gray-800">{userRole}</span> <span className="font-semibold text-neutral-900">{userName}</span>!
                 </span>
             </div>
 
@@ -89,18 +94,19 @@ export default function HeaderAdmin({ userName: initialUserName, userRole: initi
                 {/* Separador Vertical (Opcional) */}
                 <div className="h-6 w-px bg-gray-200 mx-2 hidden md:block"></div> {/* Esconde em telas pequenas */}
 
-                {/* Perfil do Usuário usa dados atualizados */}
+                {/* Perfil do Usuário */}
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                         className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900"
                         aria-expanded={isProfileMenuOpen} aria-controls="profile-menu-header"
+                        disabled={isLoadingSession} // Desabilita o botão enquanto a sessão carrega
                     >
-                        {/* Avatar usa userImage */}
+                        {/* Avatar usa userImage refinado */}
                         <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {userImage ? ( <img src={userImage} alt="Foto de Perfil" className="w-full h-full object-cover" /> ) : ( <UserCircle size={20} className="text-neutral-400" /> )}
                         </div>
-                        {/* Nome e Cargo usam userName e userRole */}
+                        {/* Nome e Cargo usam userName e userRole refinados */}
                         <div className="text-left hidden md:block mr-1"> {/* hidden md:block */}
                              <p className="text-sm font-medium text-gray-700 truncate leading-tight">{userName}</p>
                              <p className="text-xs text-gray-500 truncate leading-tight">{userRole}</p>
@@ -109,7 +115,7 @@ export default function HeaderAdmin({ userName: initialUserName, userRole: initi
                         <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${isProfileMenuOpen ? 'rotate-180' : 'rotate-0'} flex-shrink-0`} />
                     </button>
 
-                    {/* Menu Dropdown do Perfil usa userName e userRole */}
+                    {/* Menu Dropdown do Perfil */}
                     {isProfileMenuOpen && (
                         <div
                             id="profile-menu-header"
