@@ -4,7 +4,10 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import bcrypt from 'bcrypt';
-import { ModuloEnum, UserStatus } from '@prisma/client'; // Importar UserStatus também
+import { ModuloEnum, UserStatus } from '@prisma/client';
+
+// **** Importar explicitamente o tipo User da nossa definição ****
+import type { User as CustomUser } from "next-auth"; // Renomear para evitar conflito
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -15,7 +18,8 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" },
       },
-      async authorize(credentials, req) {
+      // **** Usar nosso tipo CustomUser no retorno ****
+      async authorize(credentials, req): Promise<CustomUser | null> {
         if (!credentials?.email || !credentials?.password) {
           console.error("[Authorize] Falhou: Email ou senha não fornecidos.");
           return null;
@@ -27,8 +31,15 @@ export const authOptions: AuthOptions = {
         });
 
         if (!user || !user.passwordHash) {
-          console.error(`[Authorize] Falhou: Usuário não encontrado ou sem hash de senha para ${credentials.email}`);
+          console.error(`[Authorize] Usuário não encontrado ou sem hash: ${credentials.email}`);
           return null;
+        }
+
+        // Verifica Status ANTES de checar a senha
+        if (user.status !== UserStatus.Ativo) {
+            console.warn(`[Authorize] Login bloqueado para usuário ${user.status}: ${credentials.email}`);
+            // Retorna null (ou lança erro) para indicar falha na autorização
+            return null;
         }
 
         const isPasswordValid = await bcrypt.compare(
@@ -38,16 +49,18 @@ export const authOptions: AuthOptions = {
 
         if (isPasswordValid) {
           console.log(`[Authorize] OK para: ${user.email}`);
-          // Retorna o objeto do usuário incluindo 'role', 'image' e 'status'
-          return {
+          // **** Construir o objeto de retorno COMPATÍVEL com CustomUser ****
+          const authorizedUser: CustomUser = {
             id: user.id,
             name: user.name,
             email: user.email,
             image: user.image,
-            // @ts-ignore - Passando status e role (com department)
-            status: user.status,
-            role: user.role,
+            // **** Adicionar isActive derivado do status ****
+            isActive: user.status === UserStatus.Ativo, // <-- CORREÇÃO AQUI
+            // @ts-ignore // Role pode precisar de @ts-ignore se a estrutura interna diferir levemente
+            role: user.role, // Passa o objeto role completo
           };
+          return authorizedUser;
         } else {
           console.error(`[Authorize] Senha inválida para ${credentials.email}`);
           return null;
@@ -60,95 +73,83 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    // Adiciona dados ao token JWT
     async jwt({ token, user, trigger, session }) {
-        console.log(`[JWT Callback] Trigger: ${trigger}, User: ${user?.email}, Token Sub: ${token.sub}`);
-        // Se for um trigger de update
-        if (trigger === "update") {
-            console.log("[JWT Callback] Update Trigger - Tentando atualizar token para:", token.id);
-            if (session?.user) {
-                 console.log("[JWT Callback] Update Trigger - Usando dados passados via session:", session.user);
-                 token.name = session.user.name ?? token.name;
-                 token.picture = session.user.image ?? token.picture;
-                 // Adicione outros campos se você os passar via update({ user: {...} })
-                 // Ex: Se passar status: token.status = session.user.status ?? token.status;
-            } else {
-                console.log("[JWT Callback] Update Trigger - Buscando dados atualizados do DB para:", token.id);
-                const refreshedUser = await prisma.user.findUnique({
-                    where: { id: token.id as string },
-                    select: { name: true, image: true, status: true, role: { include: { department: true } } }
-                });
-                if (refreshedUser) {
-                    console.log("[JWT Callback] Update Trigger - Dados do DB:", refreshedUser.name, refreshedUser.image);
-                    token.name = refreshedUser.name;
-                    token.picture = refreshedUser.image;
-                    token.status = refreshedUser.status;
-                    if (refreshedUser.role && refreshedUser.role.department) {
-                       token.roleName = refreshedUser.role.name;
-                       token.isDirector = refreshedUser.role.isDirector;
-                       token.departmentId = refreshedUser.role.departmentId;
-                       token.departmentName = refreshedUser.role.department.name;
-                       token.accessModule = refreshedUser.role.department.accessModule;
-                    } else {
-                        token.roleName = null; token.isDirector = false; token.departmentId = null;
-                        token.departmentName = null; token.accessModule = null;
-                    }
-                } else {
-                    console.warn("[JWT Callback] Update Trigger - Usuário não encontrado no DB:", token.id);
-                }
-            }
-        }
+        // O objeto 'user' aqui é o que foi retornado por 'authorize' (agora com isActive)
 
-        // Na primeira vez (login)
-        if (user && trigger === "signIn") {
-            console.log("[JWT Callback] SignIn - Adicionando dados do usuário ao token:", user.email);
+        // --- Lógica de UPDATE ---
+        if (trigger === "update" && session?.user) {
+            console.log("[JWT Callback] Update Trigger - Atualizando token:", session.user);
+            token.name = session.user.name ?? token.name;
+            token.picture = session.user.image ?? token.picture;
+            token.email = session.user.email ?? token.email;
+
+            const updatedUserData = session.user as any; // Usar 'any' simplifica
+
+            if ('roleName' in updatedUserData) token.roleName = updatedUserData.roleName;
+            if ('isDirector' in updatedUserData) token.isDirector = updatedUserData.isDirector;
+            if ('departmentId' in updatedUserData) token.departmentId = updatedUserData.departmentId;
+            if ('departmentName' in updatedUserData) token.departmentName = updatedUserData.departmentName;
+            if ('accessModule' in updatedUserData) token.accessModule = updatedUserData.accessModule;
+            // A propriedade 'isActive' no token será derivada do 'status' se necessário,
+            // ou pode ser adicionada aqui se você passar 'isActive' no update()
+            // if ('isActive' in updatedUserData) token.isActive = updatedUserData.isActive;
+
+            console.log("[JWT Callback] Update Trigger - Token atualizado.");
+            return token;
+        }
+        // --- FIM LÓGICA DE UPDATE ---
+
+        // No login inicial (trigger === "signIn" E user existe)
+        if (user) {
+            console.log("[JWT Callback] SignIn - Populando token inicial:", user.email);
             token.id = user.id;
+
+            // Acessar os campos do objeto 'user' retornado por authorize
+            const authorizedUser = user as CustomUser; // Usa nosso tipo importado
+
+            token.isActive = authorizedUser.isActive; // <-- Adiciona isActive ao token
+            token.picture = authorizedUser.image;
+            token.email = authorizedUser.email; // Garante que email está no token
+            token.name = authorizedUser.name; // Garante que name está no token
+
+            // Extrai dados do role/department
             // @ts-ignore
-            token.status = user.status;
-            token.picture = user.image;
-            // @ts-ignore - CORREÇÃO AQUI: Restaurando a condição completa
-            if (user.role && typeof user.role === 'object' && 'name' in user.role && 'department' in user.role && user.role.department && 'accessModule' in user.role.department) {
-                // @ts-ignore
-                token.roleName = user.role.name;
-                // @ts-ignore
-                token.isDirector = user.role.isDirector;
-                // @ts-ignore
-                token.departmentId = user.role.departmentId;
-                // @ts-ignore
-                token.departmentName = user.role.department.name;
-                // @ts-ignore
-                token.accessModule = user.role.department.accessModule;
+            if (authorizedUser.role && authorizedUser.role.department) {
+                 // @ts-ignore
+                token.roleName = authorizedUser.role.name;
+                 // @ts-ignore
+                token.isDirector = authorizedUser.role.isDirector;
+                 // @ts-ignore
+                token.departmentId = authorizedUser.role.departmentId;
+                 // @ts-ignore
+                token.departmentName = authorizedUser.role.department.name;
+                 // @ts-ignore
+                token.accessModule = authorizedUser.role.department.accessModule;
             } else {
-                token.roleName = null; token.isDirector = false; token.departmentId = null;
-                token.departmentName = null; token.accessModule = null;
+                token.roleName = null;
+                token.isDirector = false;
+                token.departmentId = null;
+                token.departmentName = null;
+                token.accessModule = null;
             }
         }
-        console.log("[JWT Callback] Token final:", { sub: token.sub, name: token.name, picture: token.picture, status: token.status, role: token.roleName });
         return token;
     },
-    // Adiciona dados do token à sessão do CLIENTE
+    // Callback Session
     async session({ session, token }) {
-        console.log("[Session Callback] Token recebido:", { sub: token.sub, name: token.name, picture: token.picture, status: token.status, role: token.roleName });
         if (session.user && token.id) {
             session.user.id = token.id as string;
-            // @ts-ignore
-            session.user.status = token.status as UserStatus;
-            // @ts-ignore
+            // @ts-ignore - Adiciona campos customizados à sessão do cliente
+            session.user.isActive = token.isActive as boolean; // <-- Adiciona isActive à sessão
             session.user.roleName = token.roleName as string | null;
-            // @ts-ignore
             session.user.isDirector = token.isDirector as boolean;
-            // @ts-ignore
             session.user.departmentId = token.departmentId as string | null;
-            // @ts-ignore
             session.user.departmentName = token.departmentName as string | null;
-            // @ts-ignore
             session.user.accessModule = token.accessModule as ModuloEnum | null;
-            // Adiciona imagem
             session.user.image = token.picture as string | null;
         } else {
             console.warn("[Session Callback] Token sem ID ou session.user não definido.");
         }
-        console.log("[Session Callback] Sessão final:", session);
         return session;
     },
   },

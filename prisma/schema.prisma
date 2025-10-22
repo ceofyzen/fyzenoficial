@@ -54,7 +54,6 @@ model Role {
   hierarchyLevel Int    @default(99)
 
   iconName      String?
-
   users         User[]
 
   createdAt     DateTime @default(now())
@@ -75,7 +74,6 @@ model User {
   rg            String?
   birthDate     DateTime?
   phone         String?
-
   // Endereço Detalhado
   cep           String?
   logradouro    String?
@@ -89,7 +87,6 @@ model User {
   admissionDate DateTime  @default(now())
   status        UserStatus @default(Ativo)
   salary        Float?
-
   roleId        String?
   role          Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
@@ -99,6 +96,11 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+
+  // Relações para o Chat (NOVAS)
+  sentMessages     ChatMessage[] @relation("SentMessages")
+  receivedMessages ChatMessage[] @relation("ReceivedMessages")
+
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -143,4 +145,22 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// NOVO MODELO PARA MENSAGENS DE CHAT
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  receiverId String
+  receiver   User    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
 }

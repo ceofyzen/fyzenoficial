@@ -55,11 +55,10 @@ const formatDateForInput = (date: Date | string | null | undefined): string => {
       console.warn("Data inválida recebida:", date);
       return '';
     }
-    // Formata como YYYY-MM-DD para o input type="date"
     const year = d.getUTCFullYear();
     const month = String(d.getUTCMonth() + 1).padStart(2, '0');
     const day = String(d.getUTCDate()).padStart(2, '0');
-    if (year < 1900 || year > 2100) return ''; // Validação básica do ano
+    if (year < 1900 || year > 2100) return '';
     return `${year}-${month}-${day}`;
   } catch (e) {
     console.error("Erro ao formatar data para input:", date, e);
@@ -72,12 +71,11 @@ export default function EditarFuncionarioPage() {
   const router = useRouter();
   const params = useParams();
   const funcionarioId = params.id as string;
-  const { data: session, update } = useSession(); // Inclui a função update
+  const { data: session, update } = useSession();
 
   // --- Estados do formulário ---
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [email, setEmail] = useState('');
-  // const [password, setPassword] = useState(''); // Senha não deve ser carregada ou alterada aqui diretamente
   const [selectedDepartamentoId, setSelectedDepartamentoId] = useState<string>('');
   const [cargoId, setCargoId] = useState('');
   const [dataAdmissao, setDataAdmissao] = useState('');
@@ -85,7 +83,7 @@ export default function EditarFuncionarioPage() {
   const [cpf, setCpf] = useState('');
   const [rg, setRg] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
-  const [status, setStatus] = useState<UserStatus>(UserStatus.Ativo); // Tipo correto
+  const [status, setStatus] = useState<UserStatus>(UserStatus.Ativo);
   const [managerId, setManagerId] = useState<string>('');
   const [salary, setSalary] = useState('');
   const [initialImageUrl, setInitialImageUrl] = useState<string | null>(null);
@@ -127,29 +125,23 @@ export default function EditarFuncionarioPage() {
       setError('');
       setNotFound(false);
       try {
-        // Busca funcionário, departamentos, cargos e todos os funcionários (para gestores) em paralelo
         const [funcResponse, deptsResponse, rolesResponse, allFuncsResponse] = await Promise.all([
           fetch(`/api/funcionarios/${funcionarioId}`),
           fetch('/api/departamentos'),
           fetch('/api/cargos'),
-          fetch('/api/funcionarios') // Para popular a lista de gestores potenciais
+          fetch('/api/funcionarios')
         ]);
 
-        // Trata Departamentos
         if (!deptsResponse.ok) throw new Error('Falha ao buscar departamentos');
         setDepartamentos(await deptsResponse.json());
 
-        // Trata Cargos
         if (!rolesResponse.ok) throw new Error('Falha ao buscar cargos');
         setCargos(await rolesResponse.json());
 
-        // Trata lista de todos os funcionários (para Gestores)
         if (!allFuncsResponse.ok) throw new Error('Falha ao buscar lista de funcionários');
         const allFuncsData: ManagerOption[] = await allFuncsResponse.json();
-        // Filtra para não incluir o próprio funcionário na lista de possíveis gestores
         setPotentialManagers(allFuncsData.filter(f => f.id !== funcionarioId));
 
-        // Trata Funcionário específico
         if (funcResponse.status === 404) {
           setNotFound(true);
           throw new Error('Funcionário não encontrado');
@@ -160,10 +152,9 @@ export default function EditarFuncionarioPage() {
         }
         const funcData: FuncionarioData = await funcResponse.json();
 
-        // Preenche os estados com os dados do funcionário
         setNomeCompleto(funcData.name || '');
         setEmail(funcData.email || '');
-        setStatus(funcData.status || UserStatus.Ativo); // Define o status
+        setStatus(funcData.status || UserStatus.Ativo);
         setDataAdmissao(formatDateForInput(funcData.admissionDate));
         setTelefone(funcData.phone || '');
         setCpf(funcData.cpf || '');
@@ -181,7 +172,6 @@ export default function EditarFuncionarioPage() {
         setInitialImageUrl(funcData.image || null);
         setManagerId(funcData.managerId || '');
 
-        // Preenche Departamento e Cargo
         if (funcData.role) {
           setSelectedDepartamentoId(funcData.role.departmentId || '');
           setCargoId(funcData.role.id || '');
@@ -207,12 +197,10 @@ export default function EditarFuncionarioPage() {
 
   // --- useEffect para busca de CEP com Debounce ---
   useEffect(() => {
-    // 1. Define a função de busca *dentro* do useEffect
     const fetchAddressFromCep = async (cepValue: string) => {
       const numericCep = cepValue.replace(/\D/g, '');
       if (numericCep.length !== 8) {
         setCepError(null);
-        // Não limpa os campos aqui, pois podem ter sido preenchidos manualmente ou vindo do DB
         return;
       }
 
@@ -228,63 +216,70 @@ export default function EditarFuncionarioPage() {
             throw new Error('CEP não encontrado.');
         }
 
-        // Só atualiza se os campos estiverem vazios, para não sobrescrever edição manual
         if (!logradouro) setLogradouro(data.logradouro || '');
         if (!bairro) setBairro(data.bairro || '');
         if (!cidade) setCidade(data.localidade || '');
         if (!estado) setEstado(data.uf || '');
 
-        // Foca no campo "numero" após preencher automaticamente
         document.getElementById('numero')?.focus();
 
       } catch (err: any) {
         console.error("Erro ao buscar CEP:", err);
         setCepError(err.message || 'Erro.');
-        // Não limpa os campos em caso de erro para não apagar dados já existentes
       } finally {
         setIsCepLoading(false);
       }
     };
 
-    // 2. Configura o debounce (atraso)
     const debounceTimeout = setTimeout(() => {
-      fetchAddressFromCep(cep); // Chama a função interna
-    }, 500); // 500ms de atraso após o usuário parar de digitar
+      fetchAddressFromCep(cep);
+    }, 500);
 
-    // 3. Limpa o timeout se o usuário digitar novamente (componentWillUnmount)
     return () => clearTimeout(debounceTimeout);
 
-  // Adiciona os campos de endereço como dependência para evitar sobrescrever se o usuário já editou
   }, [cep, logradouro, bairro, cidade, estado]);
 
 
-  // --- Função Upload (Simulação) ---
+  // --- **** NOVA Função Upload REAL **** ---
   const uploadImage = async (file: File): Promise<string> => {
     setIsUploadingImage(true);
-    // Simulação - substitua pela lógica real de upload (ex: para S3, Cloudinary)
-    return new Promise((resolve, reject) => {
-      try {
-        // Simula um tempo de upload
-        setTimeout(() => {
-          // Cria uma URL temporária para o preview local (NÃO PERSISTE)
-          // Na aplicação real, você receberia a URL final do serviço de storage
-          const mockUrl = URL.createObjectURL(file);
-          console.log("Simulando upload, URL temporária:", mockUrl);
-          setIsUploadingImage(false);
-          resolve(mockUrl); // Retorna a URL mockada
-          // Idealmente:
-          // const uploadedUrl = await uploadToCloudStorage(file);
-          // resolve(uploadedUrl);
-        }, 1500);
-      } catch (error) {
-        console.error("Erro na simulação de upload:", error);
-        setIsUploadingImage(false);
-        reject(new Error("Falha no upload simulado"));
-      }
-    });
-  };
+    setError(''); // Limpa erros de upload anteriores
 
-  // --- Função handleSubmit ---
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      // Chama a nossa nova API de upload
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Erro HTTP ${response.status} ao fazer upload`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.url) {
+        console.log("Upload bem-sucedido, URL permanente:", result.url);
+        return result.url; // Retorna a URL PÚBLICA e PERMANENTE
+      } else {
+        throw new Error(result.error || 'API de upload não retornou sucesso ou URL.');
+      }
+
+    } catch (uploadError: any) {
+      console.error("Erro durante o upload:", uploadError);
+      setError(`Falha no upload da imagem: ${uploadError.message}`);
+      throw uploadError; // Re-lança o erro para ser pego pelo handleSubmit
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+  // --- **** FIM NOVA Função Upload REAL **** ---
+
+  // --- Função handleSubmit (ATUALIZADA) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -300,49 +295,42 @@ export default function EditarFuncionarioPage() {
       setIsSaving(false);
       return;
     }
-    if (!status) { // Verifica se status é válido (não deve ser vazio)
+    if (!status) {
         setError('Selecione um status.');
         setIsSaving(false);
         return;
     }
-    // Verifica se o usuário está tentando se auto-inativar
     if (session?.user?.id === funcionarioId && status === UserStatus.Inativo) {
         setError('Você não pode inativar sua própria conta.');
         setIsSaving(false);
         return;
     }
-    // Verifica se o usuário está tentando se definir como próprio gestor
     if (managerId === funcionarioId) {
         setError('Um funcionário não pode ser seu próprio gestor.');
         setIsSaving(false);
         return;
     }
 
+    // --- **** LÓGICA DE IMAGEM ATUALIZADA **** ---
+    let imageUrlToSave: string | null = initialImageUrl; // Assume a imagem inicial
 
-    let imageUrlToSave: string | null = initialImageUrl; // Assume a imagem inicial por padrão
-    let isBlobUrl = false; // Flag para saber se a URL é temporária (blob)
-
-    if (newImageFile) { // Se um NOVO arquivo foi selecionado
+    if (newImageFile) { // Se um novo arquivo foi selecionado
       try {
+        // Chama a NOVA função de upload que retorna a URL permanente
         imageUrlToSave = await uploadImage(newImageFile);
-        isBlobUrl = imageUrlToSave.startsWith('blob:'); // Verifica se é uma URL blob
-         // --- ALERTA DE DESENVOLVIMENTO ---
-         if (isBlobUrl) {
-            console.warn("ATENÇÃO: A imagem foi 'upada' como URL blob local. Implemente o upload real para persistência!");
-            // Numa aplicação real, você teria a URL final aqui, não uma blob URL.
-            // imageUrlToSave = "url_real_do_servidor_de_imagens";
-         }
-         // --- FIM ALERTA ---
       } catch (uploadError: any) {
-        setError(`Erro no upload da imagem: ${uploadError.message}`);
-        setIsSaving(false);
-        return;
+        // O erro já foi definido em uploadImage, apenas paramos aqui
+        setIsSaving(false); // Garante que botão de salvar volte ao normal
+        return; // Interrompe o submit se o upload falhar
       }
-    } else if (initialImageUrl && !newImageFile && !document.getElementById(`image-preview-${funcionarioId}`)?.getAttribute('src')) {
-        // Se a imagem inicial existia, não há novo arquivo E a preview foi removida (pelo botão X)
+    } else if (initialImageUrl === null) {
+        // Se initialImageUrl foi setado para null (via onImageUrlChange do ImageUpload),
+        // significa que o usuário removeu a imagem existente.
         imageUrlToSave = null;
     }
-    // Se initialImageUrl era null e newImageFile é null, imageUrlToSave continua null.
+    // Se não houve novo arquivo E a imagem inicial não foi removida (initialImageUrl não é null),
+    // imageUrlToSave mantém o valor de initialImageUrl.
+    // --- **** FIM LÓGICA DE IMAGEM ATUALIZADA **** ---
 
 
     const dadosAtualizados = {
@@ -362,11 +350,10 @@ export default function EditarFuncionarioPage() {
       cidade: cidade || null,
       estado: estado || null,
       pais: pais || 'Brasil',
-      status: status, // Status já está no tipo correto
+      status: status,
       managerId: managerId || null,
       salary: salary ? parseFloat(salary) : null,
-      // Salva a URL da imagem (se for blob, SÓ VAI FUNCIONAR LOCALMENTE NO NAVEGADOR ATUAL)
-      image: imageUrlToSave,
+      image: imageUrlToSave, // Usa a URL correta (permanente ou null)
     };
 
     try {
@@ -383,39 +370,31 @@ export default function EditarFuncionarioPage() {
 
       const funcAtualizado = await response.json();
 
-      // Forçar atualização da sessão se o usuário editado for o logado
       if (session?.user?.id === funcionarioId && typeof update === 'function') {
          console.log("Atualizando sessão do usuário logado...");
          await update({
             user: {
                name: funcAtualizado.name,
-               image: funcAtualizado.image // Atualiza a imagem na sessão também
-               // Adicionar outros campos que você queira refletir imediatamente se necessário
+               image: funcAtualizado.image
             }
          });
          console.log("Sessão atualizada.");
       }
 
-
-      router.push('/admin/funcionarios'); // Redireciona para a lista após sucesso
-      router.refresh(); // Garante que a lista seja atualizada
+      router.push('/admin/funcionarios');
+      router.refresh();
 
     } catch (err: any) {
       console.error("Erro ao atualizar funcionário:", err);
       setError(`Erro ao salvar: ${err.message || 'Erro desconhecido'}.`);
-      // Se deu erro no PUT, e usamos uma blob URL, revoga ela para liberar memória
-      if (isBlobUrl && imageUrlToSave) {
-          URL.revokeObjectURL(imageUrlToSave);
-      }
     } finally {
       setIsSaving(false);
-      setIsUploadingImage(false); // Garante que o estado de upload reset
+      setIsUploadingImage(false);
     }
   };
 
   // --- Renderização Condicional ---
   if (isLoading) {
-    // Pode manter ou adicionar um skeleton/loading state aqui se preferir
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-100px)] text-gray-600">
         <Loader2 className="animate-spin mr-2" size={24} /> Carregando dados do funcionário...
@@ -459,12 +438,9 @@ export default function EditarFuncionarioPage() {
                  <ImageUpload
                     initialImageUrl={initialImageUrl}
                     onImageChange={setNewImageFile}
+                    onImageUrlChange={setInitialImageUrl} // Passa o callback para atualizar initialImageUrl
                     disabled={isSaving || isUploadingImage}
                     isLoading={isUploadingImage}
-                    // Adiciona um ID único à imagem para referência, se necessário
-                    // (Exemplo: para verificar se foi removida no submit)
-                    // Poderia passar o ID do funcionário aqui
-                    // previewId={`image-preview-${funcionarioId}`}
                  />
             </div>
             <div className="flex-grow w-full space-y-4">
@@ -472,8 +448,6 @@ export default function EditarFuncionarioPage() {
                 <div><label htmlFor="nomeCompleto" className="block text-sm font-semibold text-gray-700 mb-1">Nome Completo <span className="text-red-600">*</span></label><div className="relative"><User size={18} className="icon-input"/><input type="text" id="nomeCompleto" value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} required disabled={isSaving || isUploadingImage} className="input-with-icon pl-10" /></div></div>
                 <div><label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1">Email <span className="text-red-600">*</span></label><div className="relative"><Mail size={18} className="icon-input"/><input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isSaving || isUploadingImage} className="input-with-icon pl-10"/></div></div>
               </div>
-              {/* Senha: REMOVIDO DA EDIÇÃO. Idealmente, ter uma tela separada para reset de senha. */}
-              {/* <div><label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">Nova Senha <span className="text-gray-500 text-xs">(opcional)</span></label><div className="relative"><Lock size={18} className="icon-input"/><input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSaving || isUploadingImage} className="input-with-icon pl-10" /></div></div> */}
             </div>
           </div>
 
