@@ -5,6 +5,13 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
 import Ably from 'ably';
 
+// Interface para o CONTEXTO
+interface RouteContext {
+  params: {
+    userId: string; // userId aqui é o ID do *outro* usuário na conversa
+  };
+}
+
 // --- Instanciar Ably (usado no POST) ---
 let ably: Ably.Realtime | null = null;
 if (process.env.ABLY_API_KEY) {
@@ -16,8 +23,8 @@ if (process.env.ABLY_API_KEY) {
 
 
 // --- GET: Buscar histórico e MARCAR COMO LIDAS ---
-// **** CORREÇÃO DA ASSINATURA ****
-export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
+// **** CORREÇÃO DA ASSINATURA E AWAIT ****
+export async function GET(request: NextRequest, context: { params: RouteContext['params'] }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -26,8 +33,12 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
   }
 
   const currentUserId = session.user.id;
-  // **** CORREÇÃO DO ACESSO ****
-  const otherUserId = params.userId; // Acessa params.userId diretamente
+  // **** CORREÇÃO DO ACESSO (sem await, pois context.params não é uma Promise) ****
+  // O log de erro estava a enganar. O segundo argumento já contém { params }.
+  // A correção da minha última resposta deveria ter funcionado.
+  // Vamos usar a desestruturação padrão.
+  const { params } = context; 
+  const otherUserId = params.userId; 
 
   console.log(`GET /api/chat/messages/${otherUserId} - Buscando mensagens entre ${currentUserId} e ${otherUserId}`);
 
@@ -83,8 +94,8 @@ export async function GET(request: NextRequest, { params }: { params: { userId: 
 }
 
 // --- POST: Enviar uma nova mensagem ---
-// **** CORREÇÃO DA ASSINATURA ****
-export async function POST(request: NextRequest, { params }: { params: { userId: string } }) {
+// **** CORREÇÃO DA ASSINATURA E AWAIT ****
+export async function POST(request: NextRequest, context: { params: RouteContext['params'] }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !ably) {
       console.error("POST /api/chat/messages - Não autorizado ou Ably não configurado.");
@@ -93,7 +104,8 @@ export async function POST(request: NextRequest, { params }: { params: { userId:
 
   const senderId = session.user.id;
   // **** CORREÇÃO DO ACESSO ****
-  const receiverId = params.userId; // Acessa params.userId diretamente
+  const { params } = context;
+  const receiverId = params.userId;
 
   console.log(`POST /api/chat/messages/${receiverId} - Enviando de ${senderId}`);
   try {

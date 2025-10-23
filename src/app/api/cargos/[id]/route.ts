@@ -1,5 +1,5 @@
 // src/app/api/cargos/[id]/route.ts
-import { NextResponse, NextRequest } from 'next/server'; // Importar NextRequest
+import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
