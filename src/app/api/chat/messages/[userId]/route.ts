@@ -4,11 +4,12 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
 import Ably from 'ably';
+import type { RealtimeChannel, Message as AblyMessage, PresenceMessage } from 'ably';
 
-// Interface para o CONTEXTO
+// Interface Opcional para clareza (não usada para extrair params diretamente)
 interface RouteContext {
   params: {
-    userId: string; // userId aqui é o ID do *outro* usuário na conversa
+    userId: string;
   };
 }
 
@@ -23,8 +24,8 @@ if (process.env.ABLY_API_KEY) {
 
 
 // --- GET: Buscar histórico e MARCAR COMO LIDAS ---
-// **** CORREÇÃO DA ASSINATURA E AWAIT ****
-export async function GET(request: NextRequest, context: { params: RouteContext['params'] }) {
+// **** Usando URL para extrair o ID ****
+export async function GET(request: NextRequest, context: RouteContext) { // Mantemos context para compatibilidade, mas extrairemos da URL
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -33,12 +34,17 @@ export async function GET(request: NextRequest, context: { params: RouteContext[
   }
 
   const currentUserId = session.user.id;
-  // **** CORREÇÃO DO ACESSO (sem await, pois context.params não é uma Promise) ****
-  // O log de erro estava a enganar. O segundo argumento já contém { params }.
-  // A correção da minha última resposta deveria ter funcionado.
-  // Vamos usar a desestruturação padrão.
-  const { params } = context; 
-  const otherUserId = params.userId; 
+
+  // **** Extraindo o ID diretamente da URL ****
+  const url = new URL(request.url);
+  const pathSegments = url.pathname.split('/');
+  const otherUserId = pathSegments[pathSegments.length - 1]; // O último segmento deve ser o [userId]
+
+  // Verifica se otherUserId foi extraído corretamente
+  if (!otherUserId || otherUserId === '[userId]') { // Checa se a extração falhou
+    console.error("GET /api/chat/messages - Erro: Não foi possível extrair otherUserId da URL:", url.pathname);
+    return NextResponse.json({ error: 'ID do usuário ausente ou inválido na URL' }, { status: 400 });
+  }
 
   console.log(`GET /api/chat/messages/${otherUserId} - Buscando mensagens entre ${currentUserId} e ${otherUserId}`);
 
@@ -82,6 +88,7 @@ export async function GET(request: NextRequest, context: { params: RouteContext[
             }
         } catch (updateError) {
              console.error(`Erro ao marcar mensagens como lidas entre ${currentUserId} e ${otherUserId}:`, updateError);
+             // Não retorna erro aqui, apenas loga
         }
     }
 
@@ -94,8 +101,8 @@ export async function GET(request: NextRequest, context: { params: RouteContext[
 }
 
 // --- POST: Enviar uma nova mensagem ---
-// **** CORREÇÃO DA ASSINATURA E AWAIT ****
-export async function POST(request: NextRequest, context: { params: RouteContext['params'] }) {
+// **** Usando URL para extrair o ID ****
+export async function POST(request: NextRequest, context: RouteContext) { // Mantemos context para compatibilidade
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !ably) {
       console.error("POST /api/chat/messages - Não autorizado ou Ably não configurado.");
@@ -103,9 +110,18 @@ export async function POST(request: NextRequest, context: { params: RouteContext
   }
 
   const senderId = session.user.id;
-  // **** CORREÇÃO DO ACESSO ****
-  const { params } = context;
-  const receiverId = params.userId;
+
+  // **** Extraindo o ID diretamente da URL ****
+  const url = new URL(request.url);
+  const pathSegments = url.pathname.split('/');
+  const receiverId = pathSegments[pathSegments.length - 1]; // O último segmento deve ser o [userId]
+
+
+  // Verifica se receiverId foi extraído corretamente
+  if (!receiverId || receiverId === '[userId]') { // Checa se a extração falhou
+    console.error("POST /api/chat/messages - Erro: Não foi possível extrair receiverId da URL:", url.pathname);
+    return NextResponse.json({ error: 'ID do destinatário ausente ou inválido na URL' }, { status: 400 });
+  }
 
   console.log(`POST /api/chat/messages/${receiverId} - Enviando de ${senderId}`);
   try {
@@ -127,12 +143,18 @@ export async function POST(request: NextRequest, context: { params: RouteContext
       });
       console.log(`POST /api/chat/messages - Mensagem ${newMessage.id} salva.`);
       try {
+          // Publica a mensagem no canal Ably do destinatário
           const channelName = `private-chat-${receiverId}`;
-          const channel = ably.channels.get(channelName);
-          await channel.publish('new-message', newMessage);
-          console.log(`POST /api/chat/messages - Publicada no Ably: ${channelName}`);
+          if (ably) { // Verifica se ably está inicializado
+            const channel = ably.channels.get(channelName);
+            await channel.publish('new-message', newMessage);
+            console.log(`POST /api/chat/messages - Publicada no Ably: ${channelName}`);
+          } else {
+            console.warn("Ably não inicializado, não foi possível publicar a mensagem em tempo real.");
+          }
       } catch (ablyError) {
           console.error(`ERRO Ably publish msg ${newMessage.id}:`, ablyError);
+          // Considerar se deve retornar erro aqui ou apenas logar
       }
       return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {

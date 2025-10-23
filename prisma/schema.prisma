@@ -30,6 +30,18 @@ enum UserStatus {
   Atestado
 }
 
+// Enum para Tipo de Batida de Ponto
+enum PontoTipo {
+  ENTRADA
+  SAIDA
+}
+
+// Enum para Origem da Batida de Ponto
+enum PontoSource {
+  AUTOMATICO
+  MANUAL
+}
+
 model Department {
   id           String     @id @default(cuid())
   name         String     @unique
@@ -49,10 +61,8 @@ model Role {
   departmentId  String
   department    Department @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  isDirector    Boolean @default(false) // Pode manter ou remover se hierarchyLevel cobrir isso
-  // NOVO CAMPO PARA HIERARQUIA (0 = mais alto)
+  isDirector    Boolean @default(false)
   hierarchyLevel Int    @default(99)
-
   iconName      String?
   users         User[]
 
@@ -60,7 +70,7 @@ model Role {
   updatedAt     DateTime @updatedAt
 
   @@index([departmentId])
-  @@index([hierarchyLevel]) // Adiciona índice para ordenação
+  @@index([hierarchyLevel])
 }
 
 model User {
@@ -97,10 +107,12 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
-  // Relações para o Chat (NOVAS)
+  // Relações para o Chat
   sentMessages     ChatMessage[] @relation("SentMessages")
   receivedMessages ChatMessage[] @relation("ReceivedMessages")
 
+  // Relação para Registros de Ponto
+  pontoRegistros PontoRegistro[] // <-- Relação adicionada
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -147,13 +159,12 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// NOVO MODELO PARA MENSAGENS DE CHAT
+// MODELO PARA MENSAGENS DE CHAT
 model ChatMessage {
   id        String   @id @default(cuid())
   content   String   @db.Text
   createdAt DateTime @default(now())
   readAt    DateTime?
-
   senderId  String
   sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -163,10 +174,27 @@ model ChatMessage {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
-  // Ajudam a encontrar rapidamente as mensagens de/para um usuário, ordenadas por data
   @@index([senderId, createdAt(sort: Desc)])
   @@index([receiverId, createdAt(sort: Desc)])
-  // Pode ajudar na cláusula WHERE e PARTITION BY combinada
   @@index([senderId, receiverId, createdAt(sort: Desc)])
   @@index([receiverId, senderId, createdAt(sort: Desc)])
+}
+
+// **** NOVO MODELO PARA REGISTROS DE PONTO ****
+model PontoRegistro {
+  id         String      @id @default(cuid())
+  timestamp  DateTime    // Momento exato da batida
+  type       PontoTipo   // ENTRADA ou SAIDA
+  source     PontoSource // AUTOMATICO ou MANUAL
+  userId     String      // ID do usuário que fez a batida
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade) // Relação com User
+
+  justificativa String?   // Opcional: para registros manuais ou edições
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([userId, timestamp]) // Índice composto para buscas por usuário e data
 }
