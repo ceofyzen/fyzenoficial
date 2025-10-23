@@ -163,4 +163,10 @@ model ChatMessage {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
+  // Ajudam a encontrar rapidamente as mensagens de/para um usuário, ordenadas por data
+  @@index([senderId, createdAt(sort: Desc)])
+  @@index([receiverId, createdAt(sort: Desc)])
+  // Pode ajudar na cláusula WHERE e PARTITION BY combinada
+  @@index([senderId, receiverId, createdAt(sort: Desc)])
+  @@index([receiverId, senderId, createdAt(sort: Desc)])
 }

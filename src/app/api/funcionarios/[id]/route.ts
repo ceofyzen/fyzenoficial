@@ -5,29 +5,17 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
 import { UserStatus } from '@prisma/client';
 
-// Helper getIdFromUrl
-function getIdFromUrl(url: string): string | null {
-    try {
-        const pathSegments = new URL(url).pathname.split('/');
-        const id = pathSegments[pathSegments.length - 1];
-        return id || null;
-    } catch (e) {
-        console.error("Erro ao extrair ID da URL:", e);
-        return null;
-    }
-}
-
-
 // --- GET: Obter um Funcionário por ID ---
-export async function GET(request: NextRequest) {
+// **** CORREÇÃO DA ASSINATURA ****
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  const id = getIdFromUrl(request.url);
+  // **** CORREÇÃO DO ACESSO ****
+  const id = params.id;
   if (!id) {
-      console.error("GET /api/funcionarios/[id] - Não foi possível extrair o ID da URL:", request.url);
       return NextResponse.json({ error: 'ID inválido na requisição' }, { status: 400 });
   }
 
@@ -36,7 +24,7 @@ export async function GET(request: NextRequest) {
   try {
     const funcionario = await prisma.user.findUnique({
       where: { id: id },
-      select: { // Seleciona todos os campos necessários para a página de edição
+      select: {
         id: true, name: true, email: true,
         status: true,
         admissionDate: true,
@@ -49,8 +37,8 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            departmentId: true, // Importante para preencher o select de departamento
-            department: { select: { name: true } } // Opcional, mas útil ter o nome
+            departmentId: true,
+            department: { select: { name: true } }
           }
         },
         managerId: true,
@@ -72,15 +60,16 @@ export async function GET(request: NextRequest) {
 }
 
 // --- PUT: Atualizar um Funcionário por ID ---
-export async function PUT(request: NextRequest) {
+// **** CORREÇÃO DA ASSINATURA ****
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
    if (!session?.user) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  const id = getIdFromUrl(request.url);
+  // **** CORREÇÃO DO ACESSO ****
+  const id = params.id;
   if (!id) {
-      console.error("PUT /api/funcionarios/[id] - Não foi possível extrair o ID da URL:", request.url);
       return NextResponse.json({ error: 'ID inválido na requisição' }, { status: 400 });
   }
 
@@ -88,7 +77,6 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json();
 
-  // Impede auto-inativação
   if ((session.user as { id?: string })?.id === id && body.status === UserStatus.Inativo) {
      console.warn(`PUT /api/funcionarios/${id} - Tentativa de auto-inativação bloqueada`);
      return NextResponse.json({ error: 'Você não pode inativar sua própria conta.' }, { status: 403 });
@@ -106,13 +94,13 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     // Validações
-     if (!name || !email || !roleId || !admissionDate || !status) { return NextResponse.json({ error: 'Nome, Email, Cargo, Data Admissão e Status são obrigatórios' }, { status: 400 }); }
+     if (!name || !email || !roleId || !admissionDate || !status) { return NextResponse.json({ error: 'Campos obrigatórios faltando' }, { status: 400 }); }
      const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
      if (!roleExists) { return NextResponse.json({ error: 'Cargo inválido' }, { status: 400 }); }
      if (!Object.values(UserStatus).includes(status as UserStatus)) { return NextResponse.json({ error: 'Status inválido' }, { status: 400 }); }
      let finalManagerId: string | null = null;
      if (managerId && typeof managerId === 'string' && managerId.trim() !== '') {
-         if (managerId === id) { return NextResponse.json({ error: 'Funcionário não pode ser seu próprio gestor.' }, { status: 400 }); }
+         if (managerId === id) { return NextResponse.json({ error: 'Não pode ser seu próprio gestor.' }, { status: 400 }); }
          const managerExists = await prisma.user.findUnique({ where: { id: managerId }});
          if (!managerExists) { return NextResponse.json({ error: 'Gestor inválido' }, { status: 400 }); }
          finalManagerId = managerId;
@@ -123,7 +111,7 @@ export async function PUT(request: NextRequest) {
 
     const funcionarioAtualizado = await prisma.user.update({
       where: { id: id },
-      data: { // Campos a serem atualizados
+      data: {
         name, email, roleId,
         admissionDate: new Date(admissionDate),
         phone: phone || null, cpf: cpf || null, rg: rg || null,
@@ -134,29 +122,22 @@ export async function PUT(request: NextRequest) {
         salary: salaryValue,
         image: image || null,
       },
-       select: { // **** CAMPOS RETORNADOS (INCLUINDO DETALHES DO CARGO) ****
+       select: {
         id: true, name: true, email: true, status: true, admissionDate: true, roleId: true, salary: true, managerId: true, image: true,
         cep: true, logradouro: true, numero: true, complemento: true, bairro: true, cidade: true, estado: true, pais: true,
-        role: { // <-- Inclui detalhes do cargo na resposta
+        role: {
           select: {
-            id: true,
-            name: true,
-            isDirector: true,
-            departmentId: true,
+            id: true, name: true, isDirector: true, departmentId: true,
             department: {
-              select: {
-                name: true,
-                accessModule: true
-              }
+              select: { name: true, accessModule: true }
             }
           }
         }
-        // **** FIM DOS CAMPOS RETORNADOS ****
       }
     });
 
     console.log(`PUT /api/funcionarios/${id} - Funcionário atualizado:`, funcionarioAtualizado.name);
-    return NextResponse.json(funcionarioAtualizado); // Retorna o objeto completo com os detalhes do cargo
+    return NextResponse.json(funcionarioAtualizado);
 
   } catch (error: any) {
     console.error(`Erro ao atualizar funcionário ${id}:`, error);
@@ -167,21 +148,21 @@ export async function PUT(request: NextRequest) {
 }
 
 // --- DELETE: MUDOU PARA DESATIVAR (SETAR STATUS INATIVO) ---
-export async function DELETE(request: NextRequest) {
+// **** CORREÇÃO DA ASSINATURA ****
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
    if (!session?.user) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  const id = getIdFromUrl(request.url);
+  // **** CORREÇÃO DO ACESSO ****
+  const id = params.id;
   if (!id) {
-      console.error("DELETE /api/funcionarios/[id] - ID inválido:", request.url);
       return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
   }
 
   console.log(`DELETE /api/funcionarios/${id} - Iniciando inativação`);
 
-  // Impedir auto-desativação
   if ((session.user as { id?: string })?.id === id) {
        console.warn(`DELETE /api/funcionarios/${id} - Tentativa de auto-inativação bloqueada`);
        return NextResponse.json({ error: 'Você não pode desativar sua própria conta.' }, { status: 403 });

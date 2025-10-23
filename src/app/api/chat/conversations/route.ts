@@ -3,10 +3,15 @@ import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
-import { Prisma } from '@prisma/client'; // Importar tipos do Prisma
+import { Prisma } from '@prisma/client';
 
-// Tipo para a resposta da API
-type Conversation = {
+// **** REFORÇO: Certifique-se de que os índices abaixo foram criados no schema.prisma e migrados: ****
+// @@index([senderId, createdAt(sort: Desc)])
+// @@index([receiverId, createdAt(sort: Desc)])
+// @@index([senderId, receiverId, createdAt(sort: Desc)])
+// @@index([receiverId, senderId, createdAt(sort: Desc)])
+
+type ConversationListItem = {
     otherUser: {
         id: string;
         name: string | null;
@@ -17,12 +22,20 @@ type Conversation = {
         content: string;
         createdAt: Date;
         senderId: string;
-        // readAt: Date | null; // Adicionar se implementar leitura
     };
-    // unreadCount: number; // Adicionar se implementar contagem de não lidas
-}
+};
 
-// --- GET: Buscar lista de conversas recentes ---
+type RawConversationResult = {
+    id: string;
+    content: string;
+    createdAt: Date;
+    senderId: string;
+    receiverId: string;
+    otherUserId: string;
+    otherUserName: string | null;
+    otherUserImage: string | null;
+};
+
 export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
@@ -32,69 +45,94 @@ export async function GET(request: NextRequest) {
     }
 
     const currentUserId = session.user.id;
-    console.log(`GET /api/chat/conversations - Buscando conversas para User ID: ${currentUserId}`);
+    console.log(`GET /api/chat/conversations - Buscando conversas OTIMIZADO para User ID: ${currentUserId}`);
+    console.time(`Conversations API - User ${currentUserId}`); // Medir tempo total
 
     try {
-        // 1. Buscar todas as mensagens onde o usuário atual é remetente OU destinatário
-        const allMessages = await prisma.chatMessage.findMany({
-            where: {
-                OR: [
-                    { senderId: currentUserId },
-                    { receiverId: currentUserId },
-                ],
+        console.time(`Conversations Query - User ${currentUserId}`); // Medir tempo da query
+        const query = Prisma.sql`
+            WITH RankedMessages AS (
+              SELECT
+                m.id,
+                m.content,
+                m."createdAt",
+                m."senderId",
+                m."receiverId",
+                u_sender.name AS "senderName",
+                u_sender.image AS "senderImage",
+                u_receiver.name AS "receiverName",
+                u_receiver.image AS "receiverImage",
+                ROW_NUMBER() OVER (
+                  PARTITION BY
+                    CASE
+                      WHEN m."senderId" = ${currentUserId} THEN m."receiverId"
+                      ELSE m."senderId"
+                    END
+                  ORDER BY m."createdAt" DESC
+                ) as rn
+              FROM "ChatMessage" m
+              LEFT JOIN "User" u_sender ON m."senderId" = u_sender.id
+              LEFT JOIN "User" u_receiver ON m."receiverId" = u_receiver.id
+              WHERE m."senderId" = ${currentUserId} OR m."receiverId" = ${currentUserId}
+            )
+            SELECT
+              id,
+              content,
+              "createdAt",
+              "senderId",
+              "receiverId",
+              CASE
+                WHEN "senderId" = ${currentUserId} THEN "receiverId"
+                ELSE "senderId"
+              END AS "otherUserId",
+              CASE
+                WHEN "senderId" = ${currentUserId} THEN "receiverName"
+                ELSE "senderName"
+              END AS "otherUserName",
+              CASE
+                WHEN "senderId" = ${currentUserId} THEN "receiverImage"
+                ELSE "senderImage"
+              END AS "otherUserImage"
+            FROM RankedMessages
+            WHERE rn = 1
+            ORDER BY "createdAt" DESC;
+        `;
+
+        const rawResults: RawConversationResult[] = await prisma.$queryRaw<RawConversationResult[]>(query);
+        console.timeEnd(`Conversations Query - User ${currentUserId}`); // Fim da medição da query
+
+        console.time(`Conversations Mapping - User ${currentUserId}`); // Medir tempo do map
+        const conversations: ConversationListItem[] = rawResults.map(row => ({
+            otherUser: {
+                id: row.otherUserId,
+                name: row.otherUserName,
+                image: row.otherUserImage,
             },
-            orderBy: {
-                createdAt: 'desc', // Buscar as mais recentes primeiro facilita encontrar a última
-            },
-            include: { // Incluir dados dos dois usuários envolvidos
-                sender: { select: { id: true, name: true, image: true } },
-                receiver: { select: { id: true, name: true, image: true } },
-            },
-        });
-
-        // 2. Agrupar mensagens por conversa (identificada pelo ID do *outro* usuário)
-        const conversationsMap = new Map<string, Conversation>();
-
-        for (const message of allMessages) {
-            // Identifica o ID do outro usuário na conversa
-            const otherUserId = message.senderId === currentUserId ? message.receiverId : message.senderId;
-
-            // Se esta é a primeira mensagem que vemos dessa conversa, adiciona ao mapa
-            if (!conversationsMap.has(otherUserId)) {
-                // Determina qual objeto 'user' é o 'otherUser'
-                const otherUser = message.senderId === otherUserId ? message.sender : message.receiver;
-
-                // Ignora caso não consiga encontrar os dados do outro usuário (raro)
-                if (!otherUser) continue;
-
-                conversationsMap.set(otherUserId, {
-                    otherUser: {
-                        id: otherUser.id,
-                        name: otherUser.name,
-                        image: otherUser.image,
-                    },
-                    lastMessage: { // Como ordenamos por desc, a primeira encontrada é a última
-                        id: message.id,
-                        content: message.content,
-                        createdAt: message.createdAt,
-                        senderId: message.senderId,
-                        // readAt: message.readAt,
-                    },
-                    // unreadCount: 0, // Inicializa contagem de não lidas (a ser implementada)
-                });
+            lastMessage: {
+                id: row.id,
+                content: row.content,
+                createdAt: row.createdAt,
+                senderId: row.senderId,
             }
-            // (Opcional) Aqui poderia incrementar unreadCount se a mensagem não foi lida e o sender é o otherUser
-        }
+        }));
+        console.timeEnd(`Conversations Mapping - User ${currentUserId}`); // Fim da medição do map
 
-        // 3. Converter o mapa em um array e ordenar pela data da última mensagem
-        const conversations = Array.from(conversationsMap.values())
-            .sort((a, b) => b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime());
 
-        console.log(`GET /api/chat/conversations - Encontradas ${conversations.length} conversas para User ID: ${currentUserId}`);
+        console.log(`GET /api/chat/conversations - Encontradas ${conversations.length} conversas (OTIMIZADO) para User ID: ${currentUserId}`);
+        console.timeEnd(`Conversations API - User ${currentUserId}`); // Fim da medição total
         return NextResponse.json(conversations);
 
     } catch (error) {
-        console.error(`Erro ao buscar conversas para User ID ${currentUserId}:`, error);
+        console.error(`Erro OTIMIZADO ao buscar conversas para User ID ${currentUserId}:`, error);
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+             console.error("Prisma Error Code:", error.code);
+             console.error("Prisma Error Meta:", error.meta);
+        } else if (error instanceof Error) {
+            console.error("Generic Error Message:", error.message);
+        } else {
+            console.error("Unknown Error Structure:", error);
+        }
+        console.timeEnd(`Conversations API - User ${currentUserId}`); // Fim da medição total (em caso de erro)
         return NextResponse.json({ error: 'Erro interno ao buscar conversas' }, { status: 500 });
     }
 }

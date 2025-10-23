@@ -83,13 +83,12 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   const [isSending, setIsSending] = useState(false);
   const [errorConversations, setErrorConversations] = useState<string | null>(null);
   const [errorMessages, setErrorMessages] = useState<string | null>(null);
-  // ** Usar Refs para instâncias Ably **
+  // Refs para instâncias Ably
   const ablyClientRef = useRef<Ably.Realtime | null>(null);
   const messageChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
-  // Refs para guardar as subscrições (sem tipo explícito problemático)
-  const messageSubscriptionRef = useRef<any>(null); // Deixar inferir ou usar any
-  const presenceSubscriptionRef = useRef<any>(null); // Deixar inferir ou usar any
+  const messageSubscriptionRef = useRef<any>(null);
+  const presenceSubscriptionRef = useRef<any>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
@@ -100,23 +99,40 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   const [presenceMap, setPresenceMap] = useState<Map<string, PresenceStatus>>(new Map());
   const cleanupStartedRef = useRef(false);
 
-  // Função para buscar conversas
+  // **** CORREÇÃO AQUI ****
+  // Função para buscar conversas (Dependências Corrigidas)
   const fetchConversations = useCallback(async (showLoading = false) => {
     if (!isOpen || !currentUserId || status !== 'authenticated') return;
-    if (showLoading && !isLoadingConversations) setIsLoadingConversations(true);
+    
+    // Usa a forma funcional de setar o estado para evitar dependência
+    if (showLoading) {
+        setIsLoadingConversations(prev => {
+            if (prev) return prev; // Se já estiver true, não muda
+            return true;
+        });
+    }
+    setErrorConversations(null); // Limpa erros anteriores ao buscar
+
     try {
       const response = await fetch('/api/chat/conversations');
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        let errorMsg = `HTTP error! status: ${response.status}`;
+        try { const errData = await response.json(); errorMsg = errData.error || errorMsg; } catch (e) {}
+        throw new Error(errorMsg);
+      }
       const data: ConversationListItem[] = await response.json();
       setConversations(data);
-      if (errorConversations) setErrorConversations(null);
+      // setErrorConversations(null); // Já foi limpo no início
     } catch (err: any) {
       console.error("Erro fetchConversations:", err);
       setErrorConversations(err.message || 'Erro ao carregar conversas.');
     } finally {
-      if (showLoading) setIsLoadingConversations(false);
+      setIsLoadingConversations(false); // Sempre desativa o loading no final
     }
-  }, [isOpen, currentUserId, status, errorConversations, isLoadingConversations]);
+  // Dependências removidas: isLoadingConversations, errorConversations
+  }, [isOpen, currentUserId, status]);
+  // **** FIM DA CORREÇÃO ****
+
 
   // Função para buscar TODOS os usuários
   const fetchAllUsers = useCallback(async () => {
@@ -142,71 +158,82 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
     else { setUserSearchTerm(''); setAllUsers([]); setErrorAllUsers(null); }
   }, [isSearchingUsers, fetchAllUsers]);
 
-  // --- Efeito ÚNICO para Gerenciar Conexão, Presença e Mensagens ---
+  // Efeito ÚNICO para Gerenciar Conexão, Presença e Mensagens
   useEffect(() => {
-    if (!isOpen || !currentUserId || status !== 'authenticated') {
-        // Limpeza se fechar/deslogar
-        ablyClientRef.current?.close(); ablyClientRef.current = null; messageChannelRef.current = null; presenceChannelRef.current = null; messageSubscriptionRef.current = null; presenceSubscriptionRef.current = null; setPresenceMap(new Map()); console.log("Cleanup: Painel fechado/deslogado.");
-        return;
+    // Condições para conectar
+    if (isOpen && currentUserId && status === 'authenticated' && !ablyClientRef.current) {
+        console.log("ChatPanel Effect [Connect]: Iniciando conexão Ably...");
+        cleanupStartedRef.current = false;
+        let localClient: Ably.Realtime | null = null;
+        try {
+            localClient = new Ably.Realtime({ authUrl: '/api/ably-auth', authMethod: 'GET', clientId: currentUserId });
+            ablyClientRef.current = localClient;
+
+            localClient.connection.on('connected', async () => {
+                console.log('Ably: Conectado!');
+                if (!ablyClientRef.current) return;
+
+                // --- Configurar Presença ---
+                try {
+                    const presenceChName = 'presence-status';
+                    presenceChannelRef.current = ablyClientRef.current.channels.get(presenceChName);
+                    presenceChannelRef.current.presence.unsubscribe(); // Limpa listeners
+                    presenceSubscriptionRef.current = await presenceChannelRef.current.presence.subscribe(['enter', 'leave', 'update'], (msg: PresenceMessage) => {
+                        console.log("Presence Event:", msg.action, msg.clientId);
+                        setPresenceMap(prev => new Map(prev).set(msg.clientId, msg.action === 'leave' ? 'offline' : (msg.data?.status as PresenceStatus || 'online')));
+                    });
+                    const initialPresence = await presenceChannelRef.current.presence.get();
+                    console.log("Presença inicial:", initialPresence.length);
+                    setPresenceMap(() => {
+                        const newMap = new Map<string, PresenceStatus>();
+                        initialPresence.forEach(m => newMap.set(m.clientId, (m.data?.status as PresenceStatus || 'online')));
+                        if (currentUserId) newMap.set(currentUserId, 'online');
+                        return newMap;
+                    });
+                    await presenceChannelRef.current.presence.enter({ status: 'online' });
+                    setPresenceMap(prev => new Map(prev).set(currentUserId, 'online'));
+                    console.log(`Presence: Inscrito e entrou em ${presenceChName}`);
+                } catch (e) { console.error("Erro setup presença:", e); }
+
+                // --- Configurar Mensagens ---
+                try {
+                    const messageChName = `private-chat-${currentUserId}`;
+                    messageChannelRef.current = ablyClientRef.current.channels.get(messageChName);
+                    messageChannelRef.current.unsubscribe(); // Limpa listeners
+                    messageSubscriptionRef.current = await messageChannelRef.current.subscribe('new-message', (message: AblyMessage) => {
+                         const newMessageData = message.data as Message;
+                         console.log('Ably Message:', newMessageData);
+                         // Atualiza mensagens localmente E busca lista de conversas
+                         // Usa a forma funcional de setSelectedUserId para obter o valor atual
+                         setSelectedUserId(currentSelectedId => {
+                            if ((newMessageData.senderId === currentSelectedId || newMessageData.receiverId === currentSelectedId)) {
+                                 setMessages(prevMessages => {
+                                    if (!prevMessages.some(m => m.id === newMessageData.id)) {
+                                        return [...prevMessages, newMessageData];
+                                    }
+                                    return prevMessages;
+                                 });
+                             }
+                             return currentSelectedId; // Não muda o ID selecionado
+                         });
+                         fetchConversations(); // Atualiza lista
+                    });
+                    console.log(`Messages: Inscrito em ${messageChName}`);
+                } catch (e) { console.error("Erro setup mensagens:", e); }
+            });
+
+            // Listeners
+            localClient.connection.on('failed', (e) => { console.error('Ably falhou:', e); ablyClientRef.current = null; setPresenceMap(new Map()); });
+            localClient.connection.on('closed', () => { console.log('Ably fechada.'); ablyClientRef.current = null; setPresenceMap(new Map()); });
+            localClient.connection.on('disconnected', () => { console.warn('Ably desconectado.'); setPresenceMap(new Map()); });
+            localClient.connection.on('suspended', () => { console.warn('Ably suspenso.'); setPresenceMap(new Map()); });
+
+        } catch (error) { console.error("Erro inicializar Ably:", error); setErrorConversations('Erro ao iniciar chat.'); }
     }
-    if (ablyClientRef.current) { console.log("Ably já existe."); return; } // Evita reconectar
-
-    console.log("Iniciando conexão Ably...");
-    cleanupStartedRef.current = false;
-    let localClient: Ably.Realtime | null = null;
-    try {
-        localClient = new Ably.Realtime({ authUrl: '/api/ably-auth', authMethod: 'GET', clientId: currentUserId });
-        ablyClientRef.current = localClient;
-
-        localClient.connection.on('connected', async () => {
-            console.log('Ably: Conectado!');
-            if (!ablyClientRef.current) return;
-
-            // --- Presença ---
-            try {
-                const presenceChName = 'presence-status';
-                presenceChannelRef.current = ablyClientRef.current.channels.get(presenceChName);
-                presenceChannelRef.current.presence.unsubscribe(); // Limpa listeners
-                presenceSubscriptionRef.current = await presenceChannelRef.current.presence.subscribe(['enter', 'leave', 'update'], (msg: PresenceMessage) => {
-                    setPresenceMap(prev => new Map(prev).set(msg.clientId, msg.action === 'leave' ? 'offline' : (msg.data?.status as PresenceStatus || 'online')));
-                });
-                const initialPresence = await presenceChannelRef.current.presence.get();
-                setPresenceMap(() => {
-                    const newMap = new Map<string, PresenceStatus>();
-                    initialPresence.forEach(m => newMap.set(m.clientId, (m.data?.status as PresenceStatus || 'online')));
-                    if (currentUserId) newMap.set(currentUserId, 'online');
-                    return newMap;
-                });
-                await presenceChannelRef.current.presence.enter({ status: 'online' });
-                setPresenceMap(prev => new Map(prev).set(currentUserId, 'online'));
-                console.log(`Presence: Inscrito e entrou em ${presenceChName}`);
-            } catch (e) { console.error("Erro setup presença:", e); }
-
-            // --- Mensagens ---
-            try {
-                const messageChName = `private-chat-${currentUserId}`;
-                messageChannelRef.current = ablyClientRef.current.channels.get(messageChName);
-                messageChannelRef.current.unsubscribe(); // Limpa listeners
-                messageSubscriptionRef.current = await messageChannelRef.current.subscribe('new-message', (message: AblyMessage) => {
-                    const newMessageData = message.data as Message;
-                    setMessages(prev => (newMessageData.senderId === selectedUserId || newMessageData.receiverId === selectedUserId) && !prev.some(m => m.id === newMessageData.id) ? [...prev, newMessageData] : prev);
-                    fetchConversations();
-                });
-                console.log(`Messages: Inscrito em ${messageChName}`);
-            } catch (e) { console.error("Erro setup mensagens:", e); }
-        });
-
-        // Listeners
-        localClient.connection.on('failed', (e) => { console.error('Ably falhou:', e); ablyClientRef.current = null; setPresenceMap(new Map()); });
-        localClient.connection.on('closed', () => { console.log('Ably fechada.'); ablyClientRef.current = null; setPresenceMap(new Map()); });
-        localClient.connection.on('disconnected', () => { console.warn('Ably desconectado.'); setPresenceMap(new Map()); });
-        localClient.connection.on('suspended', () => { console.warn('Ably suspenso.'); setPresenceMap(new Map()); });
-
-    } catch (error) { console.error("Erro inicializar Ably:", error); setErrorConversations('Erro ao iniciar chat.'); }
 
     // --- Função de Limpeza REFINADA ---
     return () => {
-      if (!cleanupStartedRef.current && ablyClientRef.current) {
+      if (!cleanupStartedRef.current && (!isOpen || status !== 'authenticated') && ablyClientRef.current) {
         cleanupStartedRef.current = true;
         console.log("Cleanup: Iniciando limpeza Ably...");
         const clientToClose = ablyClientRef.current;
@@ -222,7 +249,7 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
             // Limpeza Presença
             if (presenceCh) {
               console.log(`Limpando presença (estado: ${presenceCh.state})...`);
-              if (presenceSub && typeof presenceSub.unsubscribe === 'function') { // Verifica se tem unsubscribe
+              if (presenceSub && typeof presenceSub.unsubscribe === 'function') {
                  try { await presenceSub.unsubscribe(); console.log("Unsub presença OK."); } catch (e) { console.warn("Warn unsub presença:", e);}
               }
               if (['attached', 'attaching'].includes(presenceCh.state) && clientToClose?.connection.state === 'connected') {
@@ -236,7 +263,7 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
             // Limpeza Mensagens
             if (messageCh) {
               console.log(`Limpando mensagens (estado: ${messageCh.state})...`);
-               if (messageSub && typeof messageSub.unsubscribe === 'function') { // Verifica se tem unsubscribe
+               if (messageSub && typeof messageSub.unsubscribe === 'function') {
                  try { await messageSub.unsubscribe(); console.log("Unsub mensagens OK."); } catch(e) { console.warn("Warn unsub msgs:", e)}
                }
                if (['initialized', 'attaching', 'attached'].includes(messageCh.state)) {
@@ -267,7 +294,7 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
 
 
   // Efeito para buscar conversas inicialmente
-  useEffect(() => { fetchConversations(true); }, [fetchConversations]);
+  useEffect(() => { fetchConversations(true); }, [fetchConversations]); // true para loading inicial
 
   // Função para buscar mensagens
   const fetchMessages = useCallback(async (userId: string | null) => {
@@ -466,7 +493,7 @@ export default function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
                 ) : (
                     <>
                         {isLoadingConversations && <div className="p-4 text-center text-gray-400 text-sm"><Loader2 className="animate-spin inline mr-2" size={14}/> Carregando...</div>}
-                        {errorConversations && <div className="p-4 text-center text-red-500 text-xs">{errorConversations}</div>}
+                        {errorConversations && !isLoadingConversations && <div className="p-4 text-center text-red-500 text-xs">{errorConversations}</div>}
                         {!isLoadingConversations && !errorConversations && conversations.length === 0 && <p className="p-4 text-center text-gray-400 text-sm">Nenhuma conversa.</p>}
                         {!isLoadingConversations && !errorConversations && conversations.map(convo => <ConversationItem key={convo.otherUser.id} convo={convo} />)}
                     </>
