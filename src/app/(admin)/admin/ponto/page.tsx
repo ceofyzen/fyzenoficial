@@ -756,35 +756,51 @@ export default function ControlePontoPage() {
                           }`}>
                             {reg.entrada} → {reg.saida}
                           </span>
-                          {(reg.sourceEntrada === PontoSource.MANUAL || reg.sourceSaida === PontoSource.MANUAL) && (
+                            {(reg.sourceEntrada === PontoSource.MANUAL || reg.sourceSaida === PontoSource.MANUAL) && (
                             <>
-                              <span 
-                                title="Registro Manual" 
+                                <span
+                                title="Registro Manual"
                                 className="inline-flex items-center justify-center w-6 h-6 bg-blue-500 text-white text-xs font-bold rounded-full"
-                              >
+                                >
                                 M
-                              </span>
-                              <div className="inline-flex items-center gap-1 ml-2">
-                                <button 
-                                  onClick={() => {
-                                    const registroCompleto = registros.find(r => r.id === (reg.idEntrada || reg.idSaida));
-                                    if (registroCompleto) abrirModalRegistroManual(registroCompleto);
-                                  }} 
-                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-all border border-blue-200" 
-                                  title="Editar"
+                                </span>
+                                {/* --- BOTÕES COM FUNCIONALIDADE --- */}
+                                <div className="inline-flex items-center gap-1 ml-2">
+                                <button
+                                    onClick={() => {
+                                    // Determina qual ID usar (prioriza saída se manual, senão entrada)
+                                    const manualRecordId = reg.sourceSaida === PontoSource.MANUAL ? reg.idSaida : reg.idEntrada;
+                                    // Encontra o objeto completo do registro no estado 'registros'
+                                    const registroCompleto = registros.find(r => r.id === manualRecordId);
+                                    if (registroCompleto) {
+                                        // Abre o modal passando o registro completo para edição
+                                        abrirModalRegistroManual(registroCompleto); //
+                                    } else {
+                                        console.error("Registro manual não encontrado para edição:", manualRecordId);
+                                        alert("Erro: Não foi possível encontrar os dados completos do registro para edição.");
+                                    }
+                                    }}
+                                    className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-all border border-blue-200"
+                                    title="Editar Registro Manual"
                                 >
-                                  <Edit2 size={14} />
+                                    <Edit2 size={14} />
                                 </button>
-                                <button 
-                                  onClick={() => handleDeleteRegistro(reg.idEntrada || reg.idSaida)} 
-                                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-all border border-red-200" 
-                                  title="Excluir"
+                                <button
+                                    onClick={() => {
+                                    // Determina qual ID usar (prioriza saída se manual, senão entrada)
+                                    const manualRecordId = reg.sourceSaida === PontoSource.MANUAL ? reg.idSaida : reg.idEntrada;
+                                    // Chama a função de exclusão passando o ID correto
+                                    handleDeleteRegistro(manualRecordId); //
+                                    }}
+                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-all border border-red-200"
+                                    title="Excluir Registro Manual"
                                 >
-                                  <Trash2 size={14} />
+                                    <Trash2 size={14} />
                                 </button>
-                              </div>
+                                </div>
+                                {/* --- FIM BOTÕES COM FUNCIONALIDADE --- */}
                             </>
-                          )}
+                            )}
                         </div>
                       ))}
                     </td>

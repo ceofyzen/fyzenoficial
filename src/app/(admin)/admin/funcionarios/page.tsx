@@ -135,7 +135,7 @@ export default function FuncionariosPage() {
 
   // --- RENDERIZAÇÃO ---
   return (
-    <div className="pt-14">
+    <div className="pt-2">
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6 px-0">
         <h1 className="text-2xl font-bold text-gray-800">Colaboradores</h1>
         <Link href="/admin/funcionarios/novo" className="bg-neutral-900 hover:bg-neutral-700 text-white font-semibold py-2 px-4 rounded-lg inline-flex items-center gap-2 transition-colors shadow-sm text-sm">

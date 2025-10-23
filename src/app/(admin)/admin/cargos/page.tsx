@@ -180,7 +180,7 @@ export default function CargosPage() {
 
 
   return (
-    <div className="pt-14 pb-8 min-h-screen bg-gray-50">
+    <div className="pt-4 pb-8 min-h-screen bg-gray-50">
       {/* Cabeçalho (Neutro) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 mb-4 sm:mb-0">

@@ -5,17 +5,39 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
 import { Prisma, PontoTipo } from '@prisma/client';
 
+// NÃO PRECISAMOS MAIS DA INTERFACE RouteContext
+
+// Função auxiliar para extrair o ID do URL
+function getIdFromUrl(url: string): string | null {
+  try {
+    const pathname = new URL(url).pathname;
+    const segments = pathname.split('/');
+    // O ID deve ser o último segmento na rota /api/ponto/[id]
+    const id = segments[segments.length - 1];
+    // Verifica se o ID extraído parece válido (não vazio e não o placeholder)
+    if (id && id !== '[id]') {
+      return id;
+    }
+    return null;
+  } catch (e) {
+    console.error("Erro ao extrair ID do URL:", e);
+    return null;
+  }
+}
+
 // --- PUT: Editar Registro Manual ---
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) { // <<< Removido o segundo argumento 'context'
+  // 1. Extrair ID do URL
+  const id = getIdFromUrl(request.url);
+  if (!id) {
+    return NextResponse.json({ error: 'ID do registro inválido na URL.' }, { status: 400 });
+  }
+
+  // 2. Obter a sessão
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
-
-  const { id } = params;
 
   try {
     const body = await request.json();
@@ -37,7 +59,7 @@ export async function PUT(
 
     // Verificar se o registro existe e é manual
     const registroExistente = await prisma.pontoRegistro.findUnique({
-      where: { id },
+      where: { id: id },
     });
 
     if (!registroExistente) {
@@ -56,7 +78,7 @@ export async function PUT(
 
     // Atualizar registro
     const registroAtualizado = await prisma.pontoRegistro.update({
-      where: { id },
+      where: { id: id },
       data: {
         userId: userId,
         timestamp: new Date(timestamp),
@@ -75,7 +97,7 @@ export async function PUT(
     return NextResponse.json(resultadoFormatado);
   } catch (error) {
     console.error('Erro ao atualizar registro de ponto:', error);
-    
+
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2003') {
         if (error.meta?.field_name?.toString().includes('userId')) {
@@ -102,21 +124,23 @@ export async function PUT(
 }
 
 // --- DELETE: Excluir Registro Manual ---
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) { // <<< Removido o segundo argumento 'context'
+  // 1. Extrair ID do URL
+  const id = getIdFromUrl(request.url);
+  if (!id) {
+    return NextResponse.json({ error: 'ID do registro inválido na URL.' }, { status: 400 });
+  }
+
+  // 2. Obter a sessão
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  const { id } = params;
-
   try {
     // Verificar se o registro existe e é manual
     const registroExistente = await prisma.pontoRegistro.findUnique({
-      where: { id },
+      where: { id: id },
     });
 
     if (!registroExistente) {
@@ -135,7 +159,7 @@ export async function DELETE(
 
     // Excluir registro
     await prisma.pontoRegistro.delete({
-      where: { id },
+      where: { id: id },
     });
 
     console.log('DELETE /api/ponto/[id] - Registro excluído:', id);
@@ -162,3 +186,16 @@ export async function DELETE(
     );
   }
 }
+
+// Se a função GET existir neste arquivo, aplique a mesma lógica:
+/*
+export async function GET(request: NextRequest) { // <<< Remover 'context'
+   const id = getIdFromUrl(request.url); // <<< Extrair ID do URL
+   if (!id) { ... }
+
+   const session = await getServerSession(authOptions);
+   if (!session?.user?.id) { ... }
+
+   // ... restante do código da função GET ...
+}
+*/

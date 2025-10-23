@@ -10,7 +10,7 @@ datasource db {
   relationMode = "foreignKeys"
 }
 
-// Enum para Módulos
+// --- ENUMS ---
 enum ModuloEnum {
   DIRETORIA
   MARKETING
@@ -20,9 +20,9 @@ enum ModuloEnum {
   JURIDICO
   RH
   SISTEMA
+  PERMISSOES
 }
 
-// Enum para Status do Usuário
 enum UserStatus {
   Ativo
   Inativo
@@ -30,25 +30,44 @@ enum UserStatus {
   Atestado
 }
 
-// Enum para Tipo de Batida de Ponto
 enum PontoTipo {
   ENTRADA
   SAIDA
 }
 
-// Enum para Origem da Batida de Ponto
 enum PontoSource {
   AUTOMATICO
   MANUAL
 }
 
+enum SolicitacaoStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
+}
+
+enum SolicitacaoTipo {
+  FERIAS
+  ATESTADO
+  LICENCA_NAO_REMUNERADA
+  OUTRO
+}
+
+enum PermissionTargetType {
+  DEPARTMENT
+  ROLE
+  USER
+}
+
+
+// --- MODELOS ---
+
 model Department {
   id           String     @id @default(cuid())
   name         String     @unique
   description  String?
-  accessModule ModuloEnum
-
   roles        Role[]
+  permissions  Permission[] @relation("DepartmentPermissions")
 
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -60,15 +79,14 @@ model Role {
   description   String?
   departmentId  String
   department    Department @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-
   isDirector    Boolean @default(false)
   hierarchyLevel Int    @default(99)
   iconName      String?
   users         User[]
+  permissions   Permission[] @relation("RolePermissions")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
   @@index([departmentId])
   @@index([hierarchyLevel])
 }
@@ -84,7 +102,6 @@ model User {
   rg            String?
   birthDate     DateTime?
   phone         String?
-  // Endereço Detalhado
   cep           String?
   logradouro    String?
   numero        String?
@@ -93,35 +110,61 @@ model User {
   cidade        String?
   estado        String?
   pais          String?   @default("Brasil")
-
   admissionDate DateTime  @default(now())
   status        UserStatus @default(Ativo)
   salary        Float?
   roleId        String?
   role          Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-
   managerId     String?
   manager       User?     @relation("ManagedBy", fields: [managerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   managedUsers  User[]    @relation("ManagedBy")
-
   accounts      Account[]
   sessions      Session[]
-
-  // Relações para o Chat
   sentMessages     ChatMessage[] @relation("SentMessages")
   receivedMessages ChatMessage[] @relation("ReceivedMessages")
-
-  // Relação para Registros de Ponto
-  pontoRegistros PontoRegistro[] // <-- Relação adicionada
+  pontoRegistros PontoRegistro[]
+  solicitacoes   Solicitacao[]
+  permissions   Permission[] @relation("UserPermissions")
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-
   @@index([roleId])
   @@index([managerId])
 }
 
-// ---- Modelos Obrigatórios para NextAuth.js PrismaAdapter ----
+// --- TABELA CENTRAL DE PERMISSÕES (CORRIGIDA v3) ---
+model Permission {
+  id         String               @id @default(cuid())
+  module     ModuloEnum
+  targetType PermissionTargetType // Indica qual FK está preenchida
+
+  // Chaves estrangeiras opcionais separadas
+  departmentId String?
+  roleId       String?
+  userId       String?
+
+  // Relações que usam as FKs opcionais separadas
+  department Department? @relation("DepartmentPermissions", fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role       Role?       @relation("RolePermissions", fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user       User?       @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  createdAt  DateTime    @default(now())
+
+  // Índices
+  @@index([targetType, departmentId, module]) // Índices específicos por tipo
+  @@index([targetType, roleId, module])
+  @@index([targetType, userId, module])
+  @@index([departmentId])
+  @@index([roleId])
+  @@index([userId])
+
+  // Restrição para garantir que apenas uma FK seja preenchida (CHECK constraint - requer SQL nativo ou lógica aplicacional)
+  // O Prisma não suporta CHECK constraints diretamente no schema para este caso.
+  // A lógica nas APIs (PUT/POST) deve garantir que apenas um ID (departmentId, roleId, OU userId) seja definido com base no targetType.
+}
+
+
+// ---- Modelos NextAuth ----
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -136,7 +179,6 @@ model Account {
   id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
@@ -147,7 +189,6 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
   @@index([userId])
 }
 
@@ -155,11 +196,10 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
-
   @@unique([identifier, token])
 }
 
-// MODELO PARA MENSAGENS DE CHAT
+// --- OUTROS MODELOS ---
 model ChatMessage {
   id        String   @id @default(cuid())
   content   String   @db.Text
@@ -167,10 +207,8 @@ model ChatMessage {
   readAt    DateTime?
   senderId  String
   sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
   receiverId String
   receiver   User    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
@@ -180,21 +218,35 @@ model ChatMessage {
   @@index([receiverId, senderId, createdAt(sort: Desc)])
 }
 
-// **** NOVO MODELO PARA REGISTROS DE PONTO ****
 model PontoRegistro {
   id         String      @id @default(cuid())
-  timestamp  DateTime    // Momento exato da batida
-  type       PontoTipo   // ENTRADA ou SAIDA
-  source     PontoSource // AUTOMATICO ou MANUAL
-  userId     String      // ID do usuário que fez a batida
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade) // Relação com User
-
-  justificativa String?   // Opcional: para registros manuais ou edições
-
+  timestamp  DateTime
+  type       PontoTipo
+  source     PontoSource
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  justificativa String?   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@index([userId])
   @@index([timestamp])
-  @@index([userId, timestamp]) // Índice composto para buscas por usuário e data
+  @@index([userId, timestamp])
+}
+
+model Solicitacao {
+  id           String            @id @default(cuid())
+  tipo         SolicitacaoTipo
+  dataInicio   DateTime          @db.Date
+  dataFim      DateTime          @db.Date
+  justificativa String?           @db.Text
+  observacaoRh String?           @db.Text
+  status       SolicitacaoStatus @default(PENDENTE)
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  @@index([userId])
+  @@index([status])
+  @@index([tipo])
+  @@index([dataInicio])
 }

@@ -112,7 +112,7 @@ export default function DepartamentosPage() {
 
 
   return (
-    <div className="pt-14 pb-8">
+    <div className="pt-4 pb-8">
       {/* Cabeçalho da Página (Cores Alteradas) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3 mb-4 sm:mb-0">

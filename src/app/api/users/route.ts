@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         image: true,
+        roleId: true,
         // email: true, // Descomente se precisar mostrar o email na lista
         // role: { select: { name: true } } // Descomente se precisar mostrar o cargo
       },
