@@ -3,7 +3,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from 'next-auth/next';
-import { Prisma, PontoTipo } from '@prisma/client'; // Importar Prisma e PontoTipo
+import { Prisma, PontoTipo } from '@prisma/client';
 
 // --- GET: Listar Registros de Ponto com Filtros ---
 export async function GET(request: NextRequest) {
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // **** GARANTA QUE AQUI ESTÁ COM 'P' MAIÚSCULO ****
-    const registros = await prisma.PontoRegistro.findMany({
+    // ✅ CORRIGIDO: pontoRegistro com 'p' minúsculo
+    const registros = await prisma.pontoRegistro.findMany({
       where: whereClause,
       include: {
         user: {
@@ -61,7 +61,6 @@ export async function GET(request: NextRequest) {
       orderBy: {
         timestamp: 'desc',
       },
-      // take: 50, // Considerar paginação
     });
 
     const resultadoFormatado = registros.map(reg => ({
@@ -77,7 +76,6 @@ export async function GET(request: NextRequest) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
         return NextResponse.json({ error: `Erro no banco de dados: ${error.code}`, details: error.message }, { status: 500 });
     }
-    // Adiciona log mais detalhado para outros erros
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json({ error: 'Erro interno ao buscar registros de ponto', details: errorMessage }, { status: 500 });
   }
@@ -101,8 +99,8 @@ export async function POST(request: NextRequest) {
          return NextResponse.json({ error: 'O tipo deve ser "ENTRADA" ou "SAIDA".' }, { status: 400 });
      }
 
-     // **** GARANTA QUE AQUI ESTÁ COM 'P' MAIÚSCULO ****
-     const registroManual = await prisma.PontoRegistro.create({
+     // ✅ CORRIGIDO: pontoRegistro com 'p' minúsculo
+     const registroManual = await prisma.pontoRegistro.create({
          data: {
              userId: userId,
              timestamp: new Date(timestamp),
@@ -124,11 +122,10 @@ export async function POST(request: NextRequest) {
    } catch (error) {
      console.error("Erro ao criar registro de ponto manual:", error);
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-           if (error.meta?.field_name?.toString().includes('userId')) { // Verificação mais robusta
+           if (error.meta?.field_name?.toString().includes('userId')) {
               return NextResponse.json({ error: 'Funcionário não encontrado.' }, { status: 400 });
            }
       }
-       // Adiciona log mais detalhado para outros erros
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       return NextResponse.json({ error: 'Erro interno ao criar registro manual', details: errorMessage }, { status: 500 });
    }
