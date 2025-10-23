@@ -9,13 +9,13 @@ import {
 } from 'lucide-react';
 
 // --- Tipos ---
-type FuncionarioOption = { id: string; name: string | null; };
+type FuncionarioOption = { id: string; name: string | null; roleName?: string | null; };
 type PontoRegistroApi = {
-    id: string; userId: string; userName: string | null; timestamp: string;
+    id: string; userId: string; userName: string | null; userRole?: string | null; timestamp: string;
     type: 'ENTRADA' | 'SAIDA'; source: 'AUTOMATICO' | 'MANUAL'; justificativa?: string | null;
 };
 type RegistroProcessadoDia = {
-    key: string; userId: string; userName: string; date: string;
+    key: string; userId: string; userName: string; userRole: string; date: string;
     registros: { entrada: string; saida: string; sourceEntrada?: PontoSource; sourceSaida?: PontoSource; idEntrada?: string; idSaida?: string }[];
     totalHoras: string; temBatidaImpar: boolean;
 };
@@ -116,6 +116,7 @@ const processarRegistros = (registros: PontoRegistroApi[], funcionariosList: Fun
         processed.push({
             key, userId,
             userName: userInfo?.name || `ID: ${userId.substring(0, 8)}...`,
+            userRole: userInfo?.roleName || 'Cargo não definido',
             date, registros: registrosDoDiaFormatados,
             totalHoras: totalMillis >= 0 ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}` : 'Erro',
             temBatidaImpar
@@ -730,7 +731,10 @@ export default function ControlePontoPage() {
                         <div className="bg-neutral-100 p-2 rounded-lg">
                           <User size={18} className="text-neutral-600" />
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">{item.userName}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-gray-900">{item.userName}</span>
+                          <span className="text-xs text-gray-500">{item.userRole}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -744,8 +748,8 @@ export default function ControlePontoPage() {
                         <span className="text-sm text-gray-400 italic">Sem registros</span>
                       )}
                       {item.registros.map((reg, idx) => (
-                        <div key={idx} className="flex items-center gap-2 group relative py-1">
-                          <span className={`text-xs font-mono font-semibold px-3 py-1.5 rounded-lg ${
+                        <div key={idx} className="flex items-center gap-2 mb-1 last:mb-0">
+                          <span className={`text-xs font-mono font-semibold px-3 py-1.5 rounded-lg inline-block ${
                             reg.entrada === '-' || reg.saida === '-' 
                               ? 'bg-orange-100 text-orange-700 border border-orange-300' 
                               : 'bg-green-50 text-green-700 border border-green-200'
@@ -760,23 +764,23 @@ export default function ControlePontoPage() {
                               >
                                 M
                               </span>
-                              <div className="absolute left-full ml-2 hidden group-hover:flex items-center gap-1 bg-white p-1 rounded-lg shadow-lg border border-gray-200 z-10">
+                              <div className="inline-flex items-center gap-1 ml-2">
                                 <button 
                                   onClick={() => {
                                     const registroCompleto = registros.find(r => r.id === (reg.idEntrada || reg.idSaida));
                                     if (registroCompleto) abrirModalRegistroManual(registroCompleto);
                                   }} 
-                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-all" 
+                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-all border border-blue-200" 
                                   title="Editar"
                                 >
-                                  <Edit2 size={16} />
+                                  <Edit2 size={14} />
                                 </button>
                                 <button 
                                   onClick={() => handleDeleteRegistro(reg.idEntrada || reg.idSaida)} 
-                                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-all" 
+                                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-all border border-red-200" 
                                   title="Excluir"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
                             </>
