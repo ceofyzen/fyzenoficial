@@ -4,10 +4,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ModuloEnum } from '@prisma/client';
-// --- CORREÇÃO AQUI ---
+// REMOVA a importação do ModuloEnum se não for mais usada em outro lugar no arquivo
+// import { ModuloEnum } from '@prisma/client';
 import { useMemo } from 'react'; // Importar useMemo
-// --- FIM DA CORREÇÃO ---
 import {
     LayoutDashboard, Users, Newspaper, Briefcase, Settings,
     Building, DollarSign, BookUser, FileText,
@@ -15,7 +14,8 @@ import {
     Clock,
     CalendarDays,
     Loader2, // Para indicar carregamento (opcional)
-    Lock // Ícone para Permissões
+    Lock, // Ícone para Permissões
+    ListChecks // Ícone para Definições de Permissão
 } from 'lucide-react';
 
 // --- Componente NavItem (sem alterações) ---
@@ -64,19 +64,21 @@ export default function Sidebar() {
             return false;
         }
         // Verificar se é CEO, Diretor Operacional ou pertence ao módulo RH
+        // CORREÇÃO: Comparar accessModule com string
         return (
-            session.user.roleName === 'Chief Executive Officer' ||
-            session.user.roleName === 'Diretor Operacional' || // <-- Verifique se este nome está correto
-            session.user.accessModule === ModuloEnum.RH
+            session.user.roleName === 'Diretor Executivo (CEO)' ||
+            session.user.roleName === 'Diretor Operacional (COO)' || // <-- Verifique se este nome está correto
+            session.user.accessModule === 'RH' // <-- Comparar com a string
         );
     }, [session, status]);
 
-    // *** NOVA LÓGICA PARA VERIFICAR SE PODE VER O LINK DE PERMISSÕES ***
+    // *** LÓGICA PARA VERIFICAR SE PODE VER OS LINKS DE PERMISSÕES ***
     const canViewPermissions = useMemo(() => {
         if (status !== 'authenticated' || !session?.user) {
             return false;
         }
-        const allowedRoles = ['Chief Executive Officer', 'Diretor Operacional']; // Ajuste se necessário
+        // CORREÇÃO: Usar o nome exato do cargo vindo da sessão
+        const allowedRoles = ['Diretor Executivo (CEO)', 'Diretor Operacional (COO)']; // Ajuste os nomes EXATOS se necessário
         return allowedRoles.includes(session.user.roleName || '');
     }, [session, status]);
 
@@ -121,7 +123,8 @@ export default function Sidebar() {
           {/* ========================================================= */}
 
           {/* Apenas usuários com permissão FINANCEIRO ou CEO verão este */}
-           { (session?.user?.roleName === 'Chief Executive Officer' || session?.user?.accessModule === ModuloEnum.FINANCEIRO) && ( // Corrigido para Chief Executive Officer
+           {/* CORREÇÃO AQUI: Comparar com a string 'FINANCEIRO' e o nome correto do Role */}
+           { (session?.user?.roleName === 'Diretor Executivo (CEO)' || session?.user?.accessModule === 'FINANCEIRO') && (
                <div className='mb-6'>
                    <h3 className="px-4 mb-3 text-xs uppercase text-neutral-400 tracking-wider font-semibold">Financeiro</h3>
                    <nav className="space-y-1">
@@ -137,9 +140,13 @@ export default function Sidebar() {
              <h3 className="px-4 mb-3 text-xs uppercase text-neutral-400 tracking-wider font-semibold">Sistema</h3>
              <nav className='space-y-1 mb-3'>
                 <NavItem href="/admin/configuracoes" icon={SlidersHorizontal}>Configurações</NavItem>
-                {/* *** ADICIONAR LINK CONDICIONAL PARA PERMISSÕES *** */}
+                 {/* *** LINK CONDICIONAL PARA ATRIBUIÇÃO DE PERMISSÕES *** */}
                 {canViewPermissions && (
-                    <NavItem href="/admin/permissoes" icon={Lock}>Permissões</NavItem>
+                    <NavItem href="/admin/permissoes" icon={Lock}>Atribuir Permissões</NavItem> // Renomeado para clareza
+                )}
+                 {/* *** NOVO LINK CONDICIONAL PARA DEFINIÇÕES DE PERMISSÃO *** */}
+                {canViewPermissions && (
+                    <NavItem href="/admin/permissoes/definicoes" icon={ListChecks}>Definições Permissão</NavItem>
                 )}
              </nav>
         </div>

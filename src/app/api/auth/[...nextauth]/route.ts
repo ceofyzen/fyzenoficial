@@ -4,158 +4,162 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import bcrypt from 'bcrypt';
-import { ModuloEnum, UserStatus } from '@prisma/client';
+import { UserStatus, PermissionTargetType } from '@prisma/client'; // Importar PermissionTargetType
+import type { User as CustomUser } from "next-auth";
 
-// **** Importar explicitamente o tipo User da nossa definição ****
-import type { User as CustomUser } from "next-auth"; // Renomear para evitar conflito
+// --- Função auxiliar para buscar permissões ---
+async function getUserPermissions(userId: string): Promise<Set<string>> {
+    try {
+        // Busca permissões DIRETAMENTE atribuídas ao usuário
+        const userPermissions = await prisma.permission.findMany({
+            where: {
+                userId: userId,
+                targetType: PermissionTargetType.USER // Garante que é permissão de usuário
+            },
+            select: { action: true },
+        });
+
+        const permissionsSet = new Set(userPermissions.map(p => p.action));
+
+        // LÓGICA FUTURA: Buscar permissões do Cargo (Role) e Departamento
+        // const userWithRole = await prisma.user.findUnique({
+        //     where: { id: userId },
+        //     select: { role: { select: { id: true, departmentId: true } } }
+        // });
+        // if (userWithRole?.role) {
+        //     const rolePermissions = await prisma.permission.findMany({
+        //         where: { roleId: userWithRole.role.id, targetType: PermissionTargetType.ROLE },
+        //         select: { action: true }
+        //     });
+        //     rolePermissions.forEach(p => permissionsSet.add(p.action));
+        //
+        //     if (userWithRole.role.departmentId) {
+        //         const deptPermissions = await prisma.permission.findMany({
+        //             where: { departmentId: userWithRole.role.departmentId, targetType: PermissionTargetType.DEPARTMENT },
+        //             select: { action: true }
+        //         });
+        //        deptPermissions.forEach(p => permissionsSet.add(p.action));
+        //     }
+        // }
+        // FIM LÓGICA FUTURA
+
+        // Adiciona a permissão de admin irrestrito se encontrada
+        if (permissionsSet.has('system:admin')) {
+            const allDefinitions = await prisma.permissionDefinition.findMany({ select: { action: true } });
+            allDefinitions.forEach(def => permissionsSet.add(def.action));
+        }
+
+
+        console.log(`[getUserPermissions] User ${userId} has ${permissionsSet.size} permissions.`);
+        return permissionsSet;
+
+    } catch (error) {
+        console.error(`Erro ao buscar permissões para User ID ${userId}:`, error);
+        return new Set<string>(); // Retorna set vazio em caso de erro
+    }
+}
+
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Senha", type: "password" },
-      },
-      // **** Usar nosso tipo CustomUser no retorno ****
+      credentials: { /* ... */ },
       async authorize(credentials, req): Promise<CustomUser | null> {
-        if (!credentials?.email || !credentials?.password) {
-          console.error("[Authorize] Falhou: Email ou senha não fornecidos.");
-          return null;
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-          include: { role: { include: { department: true } } }
-        });
-
-        if (!user || !user.passwordHash) {
-          console.error(`[Authorize] Usuário não encontrado ou sem hash: ${credentials.email}`);
-          return null;
-        }
-
-        // Verifica Status ANTES de checar a senha
-        if (user.status !== UserStatus.Ativo) {
-            console.warn(`[Authorize] Login bloqueado para usuário ${user.status}: ${credentials.email}`);
-            // Retorna null (ou lança erro) para indicar falha na autorização
-            return null;
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash
-        );
-
+        // ... (código authorize existente, SEM buscar permissões aqui) ...
+        if (!credentials?.email || !credentials?.password) return null;
+        const user = await prisma.user.findUnique({ /* ... */ });
+        if (!user || !user.passwordHash || user.status !== UserStatus.Ativo) return null;
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (isPasswordValid) {
-          console.log(`[Authorize] OK para: ${user.email}`);
-          // **** Construir o objeto de retorno COMPATÍVEL com CustomUser ****
-          const authorizedUser: CustomUser = {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            // **** Adicionar isActive derivado do status ****
-            isActive: user.status === UserStatus.Ativo, // <-- CORREÇÃO AQUI
-            // @ts-ignore // Role pode precisar de @ts-ignore se a estrutura interna diferir levemente
-            role: user.role, // Passa o objeto role completo
-          };
-          return authorizedUser;
-        } else {
-          console.error(`[Authorize] Senha inválida para ${credentials.email}`);
-          return null;
+            const authorizedUser: CustomUser = {
+                id: user.id, name: user.name, email: user.email, image: user.image,
+                // @ts-ignore
+                role: user.role,
+            };
+            return authorizedUser;
         }
+        return null;
       },
     }),
-    // Outros provedores...
   ],
   session: {
     strategy: "jwt",
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-        // O objeto 'user' aqui é o que foi retornado por 'authorize' (agora com isActive)
-
-        // --- Lógica de UPDATE ---
+        // --- Lógica de UPDATE (Manter como está) ---
         if (trigger === "update" && session?.user) {
-            console.log("[JWT Callback] Update Trigger - Atualizando token:", session.user);
-            token.name = session.user.name ?? token.name;
-            token.picture = session.user.image ?? token.picture;
-            token.email = session.user.email ?? token.email;
+            // ... (código de update existente) ...
+            // **IMPORTANTE:** O update() vindo do frontend NÃO deve poder setar 'permissions' diretamente.
+            // As permissões são gerenciadas pelo sistema.
+            // Se precisar RECALCULAR permissões após mudar Role/Dept no perfil, faça a busca aqui.
+             if ('roleId' in (session.user as any) || 'departmentId' in (session.user as any)) {
+                 console.log("[JWT Callback] Update Trigger - Recalculando permissões após mudança de role/dept...");
+                 token.permissions = await getUserPermissions(token.id as string);
+             }
 
-            const updatedUserData = session.user as any; // Usar 'any' simplifica
-
-            if ('roleName' in updatedUserData) token.roleName = updatedUserData.roleName;
-            if ('isDirector' in updatedUserData) token.isDirector = updatedUserData.isDirector;
-            if ('departmentId' in updatedUserData) token.departmentId = updatedUserData.departmentId;
-            if ('departmentName' in updatedUserData) token.departmentName = updatedUserData.departmentName;
-            if ('accessModule' in updatedUserData) token.accessModule = updatedUserData.accessModule;
-            // A propriedade 'isActive' no token será derivada do 'status' se necessário,
-            // ou pode ser adicionada aqui se você passar 'isActive' no update()
-            // if ('isActive' in updatedUserData) token.isActive = updatedUserData.isActive;
-
-            console.log("[JWT Callback] Update Trigger - Token atualizado.");
             return token;
         }
-        // --- FIM LÓGICA DE UPDATE ---
 
         // No login inicial (trigger === "signIn" E user existe)
         if (user) {
             console.log("[JWT Callback] SignIn - Populando token inicial:", user.email);
             token.id = user.id;
-
-            // Acessar os campos do objeto 'user' retornado por authorize
-            const authorizedUser = user as CustomUser; // Usa nosso tipo importado
-
-            token.isActive = authorizedUser.isActive; // <-- Adiciona isActive ao token
+            const authorizedUser = user as CustomUser;
             token.picture = authorizedUser.image;
-            token.email = authorizedUser.email; // Garante que email está no token
-            token.name = authorizedUser.name; // Garante que name está no token
+            token.email = authorizedUser.email;
+            token.name = authorizedUser.name;
 
-            // Extrai dados do role/department
             // @ts-ignore
             if (authorizedUser.role && authorizedUser.role.department) {
-                 // @ts-ignore
+                // @ts-ignore
                 token.roleName = authorizedUser.role.name;
-                 // @ts-ignore
+                // @ts-ignore
                 token.isDirector = authorizedUser.role.isDirector;
-                 // @ts-ignore
+                // @ts-ignore
                 token.departmentId = authorizedUser.role.departmentId;
-                 // @ts-ignore
+                // @ts-ignore
                 token.departmentName = authorizedUser.role.department.name;
-                 // @ts-ignore
-                token.accessModule = authorizedUser.role.department.accessModule;
-            } else {
-                token.roleName = null;
-                token.isDirector = false;
-                token.departmentId = null;
-                token.departmentName = null;
-                token.accessModule = null;
-            }
+                // @ts-ignore // Remover accessModule se não usar mais
+                // token.accessModule = authorizedUser.role.department.accessModule;
+            } else { /* ... valores nulos ... */ }
+
+            // <-- BUSCAR E ADICIONAR PERMISSÕES AO TOKEN -->
+            token.permissions = await getUserPermissions(user.id);
+
         }
+        // Em requisições subsequentes, as permissões já devem estar no token
         return token;
     },
-    // Callback Session
+
     async session({ session, token }) {
         if (session.user && token.id) {
             session.user.id = token.id as string;
-            // @ts-ignore - Adiciona campos customizados à sessão do cliente
-            session.user.isActive = token.isActive as boolean; // <-- Adiciona isActive à sessão
+            // @ts-ignore
             session.user.roleName = token.roleName as string | null;
+            // @ts-ignore
             session.user.isDirector = token.isDirector as boolean;
+            // @ts-ignore
             session.user.departmentId = token.departmentId as string | null;
+            // @ts-ignore
             session.user.departmentName = token.departmentName as string | null;
-            session.user.accessModule = token.accessModule as ModuloEnum | null;
+            // @ts-ignore // Remover accessModule se não usar mais
+            // session.user.accessModule = token.accessModule as ModuloEnum | null;
             session.user.image = token.picture as string | null;
+
+            // <-- ADICIONAR PERMISSÕES À SESSÃO DO CLIENTE -->
+            // @ts-ignore
+            session.user.permissions = token.permissions as Set<string>;
+
         } else {
             console.warn("[Session Callback] Token sem ID ou session.user não definido.");
         }
         return session;
     },
   },
-  pages: {
-    signIn: '/login',
-  },
+  pages: { /* ... */ },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
 };

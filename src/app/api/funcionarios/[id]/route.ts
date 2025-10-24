@@ -6,14 +6,12 @@ import { getServerSession } from 'next-auth/next';
 import { UserStatus } from '@prisma/client';
 
 // --- GET: Obter um Funcionário por ID ---
-// **** CORREÇÃO DA ASSINATURA ****
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  // **** CORREÇÃO DO ACESSO ****
   const id = params.id;
   if (!id) {
       return NextResponse.json({ error: 'ID inválido na requisição' }, { status: 400 });
@@ -38,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             id: true,
             name: true,
             departmentId: true,
-            department: { select: { name: true } }
+            department: { select: { name: true } } // Removido accessModule daqui
           }
         },
         managerId: true,
@@ -60,14 +58,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // --- PUT: Atualizar um Funcionário por ID ---
-// **** CORREÇÃO DA ASSINATURA ****
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
    if (!session?.user) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  // **** CORREÇÃO DO ACESSO ****
   const id = params.id;
   if (!id) {
       return NextResponse.json({ error: 'ID inválido na requisição' }, { status: 400 });
@@ -122,18 +118,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         salary: salaryValue,
         image: image || null,
       },
-       select: {
+       select: { // **** CORREÇÃO AQUI ****
         id: true, name: true, email: true, status: true, admissionDate: true, roleId: true, salary: true, managerId: true, image: true,
         cep: true, logradouro: true, numero: true, complemento: true, bairro: true, cidade: true, estado: true, pais: true,
         role: {
           select: {
             id: true, name: true, isDirector: true, departmentId: true,
             department: {
-              select: { name: true, accessModule: true }
+              select: {
+                name: true // Removido accessModule daqui
+                // id, description, createdAt, updatedAt, roles, permissions, _count (se precisar de algum outro, adicione aqui)
+              }
             }
           }
         }
-      }
+      } // **** FIM DA CORREÇÃO ****
     });
 
     console.log(`PUT /api/funcionarios/${id} - Funcionário atualizado:`, funcionarioAtualizado.name);
@@ -143,19 +142,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     console.error(`Erro ao atualizar funcionário ${id}:`, error);
      if (error.code === 'P2002') { const target = error.meta?.target as string[]; if (target?.includes('email')) { return NextResponse.json({ error: 'Email já existe.' }, { status: 409 }); } if (target?.includes('cpf')) { return NextResponse.json({ error: 'CPF já existe.' }, { status: 409 }); } }
      if (error.code === 'P2025') { return NextResponse.json({ error: 'Funcionário não encontrado.' }, { status: 404 }); }
+     // Logar o erro completo para depuração
+     console.error("Erro Prisma Detalhado:", JSON.stringify(error, null, 2));
     return NextResponse.json({ error: 'Erro interno ao atualizar funcionário' }, { status: 500 });
   }
 }
 
 // --- DELETE: MUDOU PARA DESATIVAR (SETAR STATUS INATIVO) ---
-// **** CORREÇÃO DA ASSINATURA ****
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
    if (!session?.user) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
-  // **** CORREÇÃO DO ACESSO ****
   const id = params.id;
   if (!id) {
       return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
