@@ -59,6 +59,16 @@ enum PermissionTargetType {
   USER
 }
 
+// --- NOVO MODELO PARA DEFINIR AS PERMISSÕES DISPONÍVEIS ---
+model PermissionDefinition {
+  id          String @id @default(cuid())
+  action      String @unique // Chave única da permissão (ex: "invoice:view")
+  category    String // Categoria para agrupar na UI (ex: "Financeiro")
+  description String // Descrição do que a permissão faz
+
+  @@index([category])
+}
+
 
 // --- MODELOS ---
 
@@ -132,35 +142,38 @@ model User {
   @@index([managerId])
 }
 
-// --- TABELA CENTRAL DE PERMISSÕES (CORRIGIDA v3) ---
+// --- TABELA CENTRAL DE PERMISSÕES (CORRIGIDA v5 - Final) ---
 model Permission {
   id         String               @id @default(cuid())
-  module     ModuloEnum
-  targetType PermissionTargetType // Indica qual FK está preenchida
+  action     String
+  targetType PermissionTargetType
+  targetId   String? // <<< TORNA Opcional aqui para permitir FKs opcionais abaixo
 
-  // Chaves estrangeiras opcionais separadas
-  departmentId String?
-  roleId       String?
-  userId       String?
+  // Relações Opcionais que usam FKs separadas e nomeadas explicitamente com `map`
+  departmentId String?     // FK Opcional para Department
+  department   Department? @relation("DepartmentPermissions", fields: [departmentId], references: [id], map: "permission_department_fkey", onDelete: Cascade, onUpdate: Cascade) // <<< Nome explícito com map
 
-  // Relações que usam as FKs opcionais separadas
-  department Department? @relation("DepartmentPermissions", fields: [departmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  role       Role?       @relation("RolePermissions", fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user       User?       @relation("UserPermissions", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  roleId String?     // FK Opcional para Role
+  role   Role?       @relation("RolePermissions", fields: [roleId], references: [id], map: "permission_role_fkey", onDelete: Cascade, onUpdate: Cascade) // <<< Nome explícito com map
+
+  userId String?     // FK Opcional para User
+  user   User?       @relation("UserPermissions", fields: [userId], references: [id], map: "permission_user_fkey", onDelete: Cascade, onUpdate: Cascade) // <<< Nome explícito com map
 
   createdAt  DateTime    @default(now())
 
   // Índices
-  @@index([targetType, departmentId, module]) // Índices específicos por tipo
-  @@index([targetType, roleId, module])
-  @@index([targetType, userId, module])
+  @@index([targetType, action])
   @@index([departmentId])
   @@index([roleId])
   @@index([userId])
 
-  // Restrição para garantir que apenas uma FK seja preenchida (CHECK constraint - requer SQL nativo ou lógica aplicacional)
-  // O Prisma não suporta CHECK constraints diretamente no schema para este caso.
-  // A lógica nas APIs (PUT/POST) deve garantir que apenas um ID (departmentId, roleId, OU userId) seja definido com base no targetType.
+  // Constraints Únicas para garantir a lógica (uma permissão por alvo/ação)
+  @@unique([targetType, departmentId, action], map: "permission_department_action_unique") // <<< Nome explícito com map
+  @@unique([targetType, roleId, action], map: "permission_role_action_unique") // <<< Nome explícito com map
+  @@unique([targetType, userId, action], map: "permission_user_action_unique") // <<< Nome explícito com map
+
+  // Nota: A lógica de garantir que APENAS UM de departmentId, roleId, userId
+  // seja preenchido por registo ainda precisa ser feita na API.
 }
 
 
@@ -199,7 +212,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// --- OUTROS MODELOS ---
+// --- OUTROS MODELOS (Com Índices Corrigidos) ---
 model ChatMessage {
   id        String   @id @default(cuid())
   content   String   @db.Text
@@ -209,6 +222,8 @@ model ChatMessage {
   sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   receiverId String
   receiver   User    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // <<< CORREÇÃO AQUI: Índices em linhas separadas >>>
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
@@ -228,6 +243,8 @@ model PontoRegistro {
   justificativa String?   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // <<< CORREÇÃO AQUI: Índices em linhas separadas >>>
   @@index([userId])
   @@index([timestamp])
   @@index([userId, timestamp])
@@ -245,8 +262,12 @@ model Solicitacao {
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+
+  // <<< CORREÇÃO AQUI: Índices em linhas separadas >>>
   @@index([userId])
   @@index([status])
   @@index([tipo])
   @@index([dataInicio])
 }
+
+// Modelo PermissionDefinition movido para cima para melhor organização
